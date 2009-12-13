@@ -65,7 +65,7 @@ int main(int argc, char *argv[]) {
 
 	if (argc != 2) {
 		Logger::get("ConsoleLogger").error("syntax: firewallsimulation config-dir");
-		Logger::get("ConsoleLogger").error("E.g. : 	./firewallsimulation ../../config/demo1");
+		Logger::get("ConsoleLogger").error("E.g. : 	./firewallsimulation config/demo1");
 		exit(1);
 	}
 

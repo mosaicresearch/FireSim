@@ -110,13 +110,15 @@ void ClickGenerator::generateSimulation(std::ostream& output, std::string config
 	output << "DROP_false :: Counter;" << std::endl;
 	output << std::endl;
 
-//	output << "//Traffic queue" << std::endl;
-//	output << "queue :: SimpleQueue" << std::endl;
-//	output << "	-> unqueue :: PokeUnqueue" << std::endl;
-//	output << "	-> Script(TYPE PACKET, write bt.reset)" << std::endl;
-
 	output << "//Traffic copy" << std::endl;
 	output << "copy :: Tee;" << std::endl;
+	output << std::endl;
+
+	output << "//Output switch" << std::endl;
+	output << "output :: Switch;" << std::endl;
+	output << "output[0] -> ToDump(\"output/faulty_accept.dump\");" << std::endl;
+	output << "output[1] -> ToDump(\"output/faulty_reject.dump\");" << std::endl;
+	output << "output[2] ->ToDump(\"output/faulty_drop.dump\");" << std::endl;
 	output << std::endl;
 
 	output << "//Traffic input queue" << std::endl;
@@ -125,44 +127,31 @@ void ClickGenerator::generateSimulation(std::ostream& output, std::string config
 	output << "	-> copy;" << std::endl;
 	output << std::endl;
 
-	output << "//Faulty accept output queue" << std::endl;
-	output << "copy[0] -> faulty_accept_queue :: SimpleQueue" << std::endl;
-	output << "	-> faulty_accept :: PokeUnqueue" << std::endl;
-	output << "	-> ToDump(\"" << OUTPUT_PATH << "faulty_accept.dump\");" << std::endl;
-	output << std::endl;
-
-	output << "//Faulty reject output queue" << std::endl;
-	output << "copy[1] -> faulty_reject_queue :: SimpleQueue" << std::endl;
-	output << "	-> faulty_reject :: PokeUnqueue" << std::endl;
-	output << "	-> ToDump(\"" << OUTPUT_PATH << "faulty_reject.dump\");" << std::endl;
-	output << std::endl;
-
-	output << "//Faulty drop output queue" << std::endl;
-	output << "copy[2] -> faulty_drop_queue :: SimpleQueue" << std::endl;
-	output << "	-> faulty_drop :: PokeUnqueue" << std::endl;
-	output << "	-> ToDump(\"" << OUTPUT_PATH << "faulty_drop.dump\");" << std::endl;
+	output << "//Send faulty packet to correct dump" << std::endl;
+	output << "copy[0] -> faulty_queue :: SimpleQueue" << std::endl;
+	output << "-> faulty_unqueue :: PokeUnqueue" << std::endl;
+	output << "-> output;" << std::endl;
 	output << std::endl;
 
 	output << "//Do simulation with input traffic" << std::endl;
-	output << "copy[3] -> Script(TYPE PACKET, write bt.reset)" << std::endl;
+	output << "copy[1] -> Script(TYPE PACKET, write bt.reset)" << std::endl;
 	output << "	-> MarkIPHeader(14)" << std::endl;
 	output << "	-> inputCounter;" << std::endl;
 	output << std::endl;
 
-	output << "//Clear the output queues and get the next input packet going" << std::endl;
-	output << "	next :: Script(TYPE PACKET, write faulty_accept_queue.reset)" << std::endl;
-	output << "	-> Script(TYPE PACKET, write faulty_reject_queue.reset)" << std::endl;
-	output << "	-> Script(TYPE PACKET, write faulty_drop_queue.reset)" << std::endl;
-	output << "	-> Script(TYPE PACKET, write unqueue.poke) -> Discard;" << std::endl;
+	output << "//Send the packet (if faulty) to the correct dump file and get the next input packet going" << std::endl;
+	output << "	next :: Script(TYPE PACKET, write faulty_unqueue.poke)" << std::endl;
+	output << "	-> Script(TYPE PACKET, write unqueue.poke)" << std::endl;
+	output << " -> Discard;" << std::endl;
 	output << std::endl;
 
 	output << "//Feedback" << std::endl;
-	output << "ACCEPT_CHECK[0] -> ACCEPT_true -> next" << std::endl;
-	output << "ACCEPT_CHECK[1] -> ACCEPT_false -> Script(TYPE PACKET, write faulty_accept.poke) -> next" << std::endl;
-	output << "REJECT[0] -> REJECT_true -> next" << std::endl;
-	output << "REJECT[1] -> REJECT_false -> Script(TYPE PACKET, write faulty_reject.poke) -> next" << std::endl;
-	output << "DROP[0] -> DROP_true -> next" << std::endl;
-	output << "DROP[1] -> DROP_false -> Script(TYPE PACKET, write faulty_drop.poke) -> next" << std::endl;
+	output << "ACCEPT_CHECK[0] -> ACCEPT_true -> Script(TYPE PACKET, write output.switch -1) -> next" << std::endl;
+	output << "ACCEPT_CHECK[1] -> ACCEPT_false -> Script(TYPE PACKET, write output.switch 0) -> next" << std::endl;
+	output << "REJECT[0] -> REJECT_true -> Script(TYPE PACKET, write output.switch -1) -> next" << std::endl;
+	output << "REJECT[1] -> REJECT_false -> Script(TYPE PACKET, write output.switch 1) -> next" << std::endl;
+	output << "DROP[0] -> DROP_true -> Script(TYPE PACKET, write output.switch -1) -> next" << std::endl;
+	output << "DROP[1] -> DROP_false -> Script(TYPE PACKET, write output.switch 2) -> next" << std::endl;
 	output << std::endl;
 
 	output << "Idle -> MANGLE_INPUT1;" << std::endl;
