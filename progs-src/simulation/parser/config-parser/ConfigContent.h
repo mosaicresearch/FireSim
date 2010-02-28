@@ -91,7 +91,7 @@ struct ConfigContent {
 	Policy policy;
 	std::string inInterface;
 	std::string outInterface;
-	std::string dumpPath;
+	std::pair<std::string, bool> dumpPath; //true = ascii dump, false = regular dump
 };
 
 #endif /* CONFIGCONTENT_H_ */

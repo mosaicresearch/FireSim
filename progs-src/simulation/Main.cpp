@@ -71,6 +71,8 @@ int main(int argc, char *argv[]) {
 
 //	Logger::get("ConsoleLogger").information("dir: " + std::string(argv[2]));
 	std::string config_path(argv[1]);
+	if (config_path.find_last_of('/') != config_path.length()-1)
+		config_path.append("/");
 
 	//print ascii-logo
 	std::stringstream stringstream;

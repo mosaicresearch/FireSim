@@ -34,7 +34,7 @@ using Poco::XML::Node;
 ConfigParser* ConfigParser::fInstance = 0;
 
 //forward declaration of helper function
-void checkDump(std::string dump, std::string outInterface, std::string inInterface, NetworkLayout* networkLayout);
+void checkDump(std::pair<std::string, bool> dump, std::string outInterface, std::string inInterface, NetworkLayout* networkLayout);
 bool fileExist(std::string path);
 
 ConfigParser::ConfigParser(std::string path): _path(path) {
@@ -74,7 +74,7 @@ void ConfigParser::parse(Poco::XML::Document* xmlDocument, NetworkLayout* networ
 		content->tcp_flags.push_back(SYN);
 		content->icmp_type = 0;
 		content->icmp_code = -1;
-		content->dumpPath = "";
+		content->dumpPath = std::pair<std::string, bool>("", false);
 		content->destIP = IPAddress();
 		content->sourceIP = IPAddress();
 		content->inInterface = "";
@@ -95,7 +95,8 @@ void ConfigParser::parse(Poco::XML::Document* xmlDocument, NetworkLayout* networ
 					&& (elementNode->nodeName()!=XMLConstants::POLICY_TAG)
 					&& (elementNode->nodeName()!=XMLConstants::IN_INTERFACE_TAG)
 					&& (elementNode->nodeName()!=XMLConstants::OUT_INTERFACE_TAG)
-					&& (elementNode->nodeName()!=XMLConstants::DUMP_TAG)){
+					&& (elementNode->nodeName()!=XMLConstants::DUMP_TAG)
+					&& (elementNode->nodeName()!=XMLConstants::ASCII_DUMP_TAG)){
 				std::cout << "config.xml: XML element " << elementNode->nodeName() << " is not supported." << std::endl;
 				exit(1);
 			}
@@ -234,18 +235,27 @@ void ConfigParser::parse(Poco::XML::Document* xmlDocument, NetworkLayout* networ
 				removeWhitespace(dumpFile);
 				std::string path = _path + dumpFile;
 				if(!fileExist(path)){
-					std::cout << "config.xml: The specified input dump file " << textNode->nodeValue() << " is not found in the config folder." << std::endl;
+					std::cout << "config.xml: The specified dump file " << textNode->nodeValue() << " is not found in the config folder." << std::endl;
 					exit(1);
 				}
-				content->dumpPath = path;
+				content->dumpPath = std::pair<std::string, bool>(path, false);
+			} else if (elementNode->nodeName() == XMLConstants::ASCII_DUMP_TAG) {
+				std::string dumpFile = textNode->nodeValue();
+				removeWhitespace(dumpFile);
+				std::string path = _path + dumpFile;
+				if(!fileExist(path)){
+					std::cout << "config.xml: The specified ascii dump file " << textNode->nodeValue() << " is not found in the config folder." << std::endl;
+					exit(1);
+				}
+				content->dumpPath = std::pair<std::string, bool>(path, true);
 			}
 			elementNode = elementNode->nextSibling();
 		}
 
-		if (content->dumpPath!=""){
+		if (content->dumpPath.first!="") {
 			//traffic from dump file detected.
 			if(content->inInterface == "" || content->outInterface == ""){
-				std::cout << "config.xml: If you specify a " << XMLConstants::DUMP_TAG << ", then you must also specify " << XMLConstants::IN_INTERFACE_TAG << "and " << XMLConstants::OUT_INTERFACE_TAG << "." << std::endl;
+				std::cout << "config.xml: If you specify a " << (content->dumpPath.second?XMLConstants::ASCII_DUMP_TAG:XMLConstants::DUMP_TAG) << ", then you must also specify " << XMLConstants::IN_INTERFACE_TAG << "and " << XMLConstants::OUT_INTERFACE_TAG << "." << std::endl;
 				exit(1);
 			}
 			//check existence of in- and out-interfaces.
@@ -337,8 +347,8 @@ void ConfigParser::printClickTraffic(std::ostream& ostream, NetworkLayout* netwo
 	int counter = 0;
 	for(std::vector<ConfigContent*>::iterator it = _content.begin(); it != _content.end(); it++){
 		ostream << "//Traffic Block" << std::endl;
-		if ((*it)->dumpPath != "") {
-			ostream << "FromDump(\"" << (*it)->dumpPath << "\")";
+		if ((*it)->dumpPath.first != "") {
+			ostream << ((*it)->dumpPath.second?"FromIPSummaryDump":"FromDump") << "(\"" << (*it)->dumpPath.first << "\")";
 			ostream << "	-> EnsureEther(0x0800, " << networkLayout->getMacAddress((*it)->outInterface) << ", "
 					<< networkLayout->getMacAddress((*it)->inInterface) << ")" << std::endl;
 			ostream << "	-> Paint(COLOR " << (*it)->policy << ")" << std::endl;
@@ -405,7 +415,10 @@ void clickHelperPrinter(std::ostream& clickScript, std::string name, NetworkLayo
 
 }
 
-void checkDump(std::string dump, std::string inInterface, std::string outInterface, NetworkLayout* networkLayout){
+void checkDump(std::pair<std::string, bool> dump, std::string inInterface, std::string outInterface, NetworkLayout* networkLayout) {
+	if (dump.second)
+		return;
+
 	//Set up output
 	std::ofstream clickScript;
 	clickScript.open((SCRIPT_DIR + "check_dump.click").c_str());
@@ -484,7 +497,7 @@ void checkDump(std::string dump, std::string inInterface, std::string outInterfa
 	clickScript << "IPTABLES[3] -> check_src_and_dst_mac; //Forward Chain" << std::endl; //Forward Chain
 	clickScript << std::endl;
 
-	clickScript << "inputDump :: FromDump(\"" << dump << "\", END_CALL active false)" << std::endl;
+	clickScript << "inputDump :: FromDump(\"" << dump.first << "\", END_CALL active false)" << std::endl;
 	clickScript << "	-> EnsureEther(0x0800, " << networkLayout->getMacAddress(outInterface) << ", " << networkLayout->getMacAddress(inInterface) << ")" << std::endl;
 	clickScript << "	-> MarkIPHeader(14)" << std::endl;
 	clickScript << "	-> IPTABLES;" << std::endl;

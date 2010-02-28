@@ -90,7 +90,7 @@ void Chain::printClickTraceSimulation(std::ostream& ostream, std::string prefix,
 			if (target->getName() == "RETURN") {
 				ostream << " -> bt;" << std::endl;
 			} else if (target->getName() == "MASQUERADE") {
-				ostream << " -> Script(TYPE PACKET, write bt.trace " << prefix << this->getName() << (index + 2) << postfix << ")"
+				ostream << " -> BacktrackPainter(" << prefix << this->getName() << (index + 2) << postfix << ")"
 						<< " -> masq;" << std::endl;
 			} else if ((target->getName() == "SNAT") || (target->getName() == "DNAT")) {
 				_rules[index]->printIPRewriter(ostream);
@@ -98,7 +98,7 @@ void Chain::printClickTraceSimulation(std::ostream& ostream, std::string prefix,
 			} else if (target->isFinal()) {
 				ostream << " -> " << target->getName() << ";" <<std::endl;
 			} else {
-				ostream << " -> Script(TYPE PACKET, write bt.trace " << prefix << this->getName() << (index + 2) << postfix << ")"
+				ostream << " -> BacktrackPainter(" << prefix << this->getName() << (index + 2) << postfix << ")"
 						<< " -> " << prefix << target->getName() << "1" << postfix << ";" << std::endl;
 			}
 		} else if (_rules[index]->needsIPClassifier() && _rules[index]->needsClassifier()) {
@@ -115,7 +115,7 @@ void Chain::printClickTraceSimulation(std::ostream& ostream, std::string prefix,
 			if (target->getName() == "RETURN") {
 				ostream << " -> bt;" << std::endl;
 			} else if (target->getName() == "MASQUERADE") {
-				ostream << " -> Script(TYPE PACKET, write bt.trace " << prefix << this->getName() << (index + 2) << postfix << ")"
+				ostream << " -> BacktrackPainter(" << prefix << this->getName() << (index + 2) << postfix << ")"
 						<< " -> masq;" << std::endl;
 			} else if ((target->getName() == "SNAT") || (target->getName() == "DNAT")) {
 				_rules[index]->printIPRewriter(ostream);
@@ -123,7 +123,7 @@ void Chain::printClickTraceSimulation(std::ostream& ostream, std::string prefix,
 			} else if (target->isFinal()) {
 				ostream << " -> " << target->getName() << ";" <<std::endl;
 			} else {
-				ostream << " -> Script(TYPE PACKET, write bt.trace " << prefix << this->getName() << (index + 2) << postfix << ")"
+				ostream << " -> BacktrackPainter(" << prefix << this->getName() << (index + 2) << postfix << ")"
 						<< " -> " << prefix << target->getName() << "1" << postfix << ";" <<std::endl;
 			}
 			ostream << prefix << this->getName() << (index + 1) << "B[1]"
@@ -135,7 +135,7 @@ void Chain::printClickTraceSimulation(std::ostream& ostream, std::string prefix,
 			if (target->getName() == "RETURN") {
 				 ostream << " -> bt;" << std::endl;
 			} else if (target->getName() == "MASQUERADE") {
-				ostream << " -> Script(TYPE PACKET, write bt.trace " << prefix << this->getName() << (index + 2) << postfix << ")"
+				ostream << " -> BacktrackPainter(" << prefix << this->getName() << (index + 2) << postfix << ")"
 						<< " -> masq;" << std::endl;
 			} else if ((target->getName() == "SNAT") || (target->getName() == "DNAT")) {
 				 _rules[index]->printIPRewriter(ostream);
@@ -143,7 +143,7 @@ void Chain::printClickTraceSimulation(std::ostream& ostream, std::string prefix,
 			} else if (target->isFinal()) {
 				ostream << " -> " << target->getName() << ";" <<std::endl;
 			} else {
-				ostream << " -> Script(TYPE PACKET, write bt.trace " << prefix << this->getName() << (index + 2) << postfix << ")"
+				ostream << " -> BacktrackPainter(" << prefix << this->getName() << (index + 2) << postfix << ")"
 						<< " -> " << prefix << target->getName() << "1" << postfix << ";" << std::endl;
 			}
 			ostream << prefix << this->getName() << (index + 1) << "[1]"
@@ -191,7 +191,7 @@ void Chain::printClickTraceSimulation(std::ostream& ostream, std::string prefix,
 			if (target->getName() == "RETURN") {
 				ostream << " -> bt;" << std::endl;
 			} else if (target->getName() == "MASQUERADE") {
-				ostream << " -> Script(TYPE PACKET, write bt.trace " << prefix << this->getName() << (_rules.size() + 1) << postfix << ")"
+				ostream << " -> BacktrackPainter(" << prefix << this->getName() << (_rules.size() + 1) << postfix << ")"
 						<< " -> masq;" << std::endl;
 			} else if ((target->getName() == "SNAT") || (target->getName() == "DNAT")) {
 				rule->printIPRewriter(ostream);
@@ -199,7 +199,7 @@ void Chain::printClickTraceSimulation(std::ostream& ostream, std::string prefix,
 			} else if (target->isFinal()) {
 				ostream << " -> " << target->getName() << ";" <<std::endl;
 			} else {
-				ostream << " -> Script(TYPE PACKET, write bt.trace " << prefix << this->getName() << (_rules.size() + 1) << postfix << ")"
+				ostream << " -> BacktrackPainter(" << prefix << this->getName() << (_rules.size() + 1) << postfix << ")"
 						<< " -> " << prefix << target->getName() << "1" << postfix << ";" << std::endl;
 			}
 			if (_policy=="") {
@@ -223,7 +223,7 @@ void Chain::printClickTraceSimulation(std::ostream& ostream, std::string prefix,
 			if (target->getName() == "RETURN") {
 				ostream << " -> bt;" << std::endl;
 			} else if (target->getName() == "MASQUERADE") {
-				ostream << " -> Script(TYPE PACKET, write bt.trace " << prefix << this->getName() << (_rules.size() + 1) << postfix << ")"
+				ostream << " -> BacktrackPainter(" << prefix << this->getName() << (_rules.size() + 1) << postfix << ")"
 						<< " -> masq;" << std::endl;
 			} else if ((target->getName() == "SNAT") || (target->getName() == "DNAT")) {
 				rule->printIPRewriter(ostream);
@@ -231,7 +231,7 @@ void Chain::printClickTraceSimulation(std::ostream& ostream, std::string prefix,
 			} else if (target->isFinal()){
 				ostream << " -> " << target->getName() << ";" <<std::endl;
 			} else {
-				ostream << " -> Script(TYPE PACKET, write bt.trace " << prefix << this->getName() << ( _rules.size() + 1) << postfix << ")"
+				ostream << " -> BacktrackPainter(" << prefix << this->getName() << ( _rules.size() + 1) << postfix << ")"
 						<< " -> " << prefix << target->getName() << "1" << postfix << ";" << std::endl;
 			}
 			ostream << prefix << this->getName() << (_rules.size()) << "B[1]"
@@ -251,7 +251,7 @@ void Chain::printClickTraceSimulation(std::ostream& ostream, std::string prefix,
 			if (target->getName() == "RETURN") {
 				ostream << " -> bt;" << std::endl;
 			} else if (target->getName() == "MASQUERADE") {
-				ostream << " -> Script(TYPE PACKET, write bt.trace " << prefix << this->getName() << (_rules.size() + 1) << postfix << ")"
+				ostream << " -> BacktrackPainter(" << prefix << this->getName() << (_rules.size() + 1) << postfix << ")"
 						<< " -> masq;" << std::endl;
 			} else if ((target->getName() == "SNAT") || (target->getName() == "DNAT")) {
 				rule->printIPRewriter(ostream);
@@ -259,7 +259,7 @@ void Chain::printClickTraceSimulation(std::ostream& ostream, std::string prefix,
 			} else if (target->isFinal()){
 				ostream << " -> " << target->getName() << ";" <<std::endl;
 			} else {
-				ostream << " -> Script(TYPE PACKET, write bt.trace " << prefix << this->getName() << ( _rules.size() + 1) << postfix << ")"
+				ostream << " -> BacktrackPainter(" << prefix << this->getName() << ( _rules.size() + 1) << postfix << ")"
 						<< " -> " << prefix << target->getName() << "1" << postfix << ";" <<std::endl;
 			}
 			ostream << prefix << this->getName() << (_rules.size()) << "[1]"

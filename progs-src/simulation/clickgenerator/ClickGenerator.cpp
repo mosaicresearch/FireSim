@@ -129,21 +129,20 @@ void ClickGenerator::generateSimulation(std::ostream& output, std::string config
 
 	output << "//Send faulty packet to correct dump" << std::endl;
 	output << "copy[0] -> faulty_queue :: SimpleQueue" << std::endl;
-	output << "-> faulty_unqueue :: Unqueue(LIMIT 1, ACTIVE false)" << std::endl;
-	output << "-> output;" << std::endl;
+	output << "	-> faulty_unqueue :: Unqueue(LIMIT 1, ACTIVE false)" << std::endl;
+	output << "	-> output;" << std::endl;
 	output << std::endl;
 
 	output << "//Do simulation with input traffic" << std::endl;
-	output << "copy[1] -> Script(TYPE PACKET, write bt.reset)" << std::endl;
-	output << "	-> MarkIPHeader(14)" << std::endl;
+	output << "copy[1] -> MarkIPHeader(14)" << std::endl;
 	output << "	-> inputCounter;" << std::endl;
 	output << std::endl;
 
 	output << "//Send the packet (if faulty) to the correct dump file and get the next input packet going" << std::endl;
-	output << "	next :: Script(TYPE PACKET, write faulty_unqueue.active true)" << std::endl;
-	output << " -> Script(TYPE PACKET, write faulty_unqueue.reset)" << std::endl;
+	output << "next :: Script(TYPE PACKET, write faulty_unqueue.active true)" << std::endl;
+	output << "	-> Script(TYPE PACKET, write faulty_unqueue.reset)" << std::endl;
 	output << "	-> Script(TYPE PACKET, write unqueue.reset)" << std::endl;
-	output << " -> Discard;" << std::endl;
+	output << "	-> Discard;" << std::endl;
 	output << std::endl;
 
 	output << "//Feedback" << std::endl;
@@ -235,7 +234,6 @@ void ClickGenerator::generateTraces(std::ostream& output) {
 	output << "FromDump($FILENAME)" << std::endl;
 	output << "	-> SimpleQueue" << std::endl;
 	output << "	-> unqueue :: Unqueue(LIMIT 1)" << std::endl;
-	output << "	-> Script(TYPE PACKET, write bt.reset)" << std::endl;
 	output << "	-> MarkIPHeader(14)" << std::endl;
 	output << "	-> poke_counter :: Counter" << std::endl;
 	output << "	-> Script(TYPE PACKET," << std::endl;

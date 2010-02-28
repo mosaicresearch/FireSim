@@ -26,3 +26,4 @@ const std::string XMLConstants::POLICY_TAG = "POLICY";
 const std::string XMLConstants::IN_INTERFACE_TAG = "IN_INTERFACE";
 const std::string XMLConstants::OUT_INTERFACE_TAG = "OUT_INTERFACE";
 const std::string XMLConstants::DUMP_TAG = "DUMP";
+const std::string XMLConstants::ASCII_DUMP_TAG = "ASCII_DUMP";
