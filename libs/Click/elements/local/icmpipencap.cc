@@ -5,6 +5,7 @@
 #include <clicknet/ip.h>
 #include <clicknet/icmp.h>
 #include <click/packet_anno.hh>
+#include <click/nameinfo.hh>
 #include <click/standard/alignmentinfo.hh>
 CLICK_DECLS
 
@@ -20,14 +21,20 @@ ICMPIPEncap::~ICMPIPEncap()
 int
 ICMPIPEncap::configure(Vector<String> &conf, ErrorHandler *errh)
 {
+	String code_str = "0";
+	int code;
     if (cp_va_kparse(conf, this, errh,
 		     "SRC", cpkP+cpkM, cpIPAddress, &_src,
 		     "DST", cpkP+cpkM, cpIPAddress, &_dst,
-		     "TYPE", cpkP+cpkM, cpUnsignedShort, &_icmp_type,
-		     "CODE", cpkP, cpUnsignedShort, &_icmp_code,
+		     "TYPE", cpkP+cpkM, cpNamedInteger, NameInfo::T_ICMP_TYPE, &_icmp_type,
+		     "CODE", cpkP, cpWord, &code_str,
 		     "IDENTIFIER", 0, cpUnsignedShort, &_icmp_id,
 		     cpEnd) < 0)
 	return -1;
+
+    if (!NameInfo::query_int(NameInfo::T_ICMP_CODE + _icmp_type, this, code_str, &code) || code < 0 || code > 255)
+    	return errh->error("invalid code");
+    _icmp_code = code;
 
 #if HAVE_FAST_CHECKSUM && FAST_CHECKSUM_ALIGNED
     { // check alignment
@@ -47,7 +54,38 @@ ICMPIPEncap::configure(Vector<String> &conf, ErrorHandler *errh)
 Packet *
 ICMPIPEncap::simple_action(Packet *p)
 {
-    if (WritablePacket *q = p->push(sizeof(click_ip) + sizeof(struct click_icmp_echo))) {
+	WritablePacket *q;
+	bool need_seq_number = false;
+	switch(_icmp_type) {
+		case ICMP_UNREACH:
+			if (_icmp_code == ICMP_UNREACH_NEEDFRAG)
+				q = p->push(sizeof(click_ip) + sizeof(struct click_icmp_needfrag));
+			else
+				q = p->push(sizeof(click_ip) + sizeof(struct click_icmp));
+			break;
+		case ICMP_TSTAMP:
+		case ICMP_TSTAMPREPLY:
+			q = p->push(sizeof(click_ip) + sizeof(struct click_icmp_tstamp));
+			need_seq_number = true;
+			break;
+		case ICMP_REDIRECT:
+			q = p->push(sizeof(click_ip) + sizeof(struct click_icmp_redirect));
+			break;
+		case ICMP_PARAMPROB:
+			q = p->push(sizeof(click_ip) + sizeof(struct click_icmp_paramprob));
+			break;
+		case ICMP_ECHO:
+		case ICMP_ECHOREPLY:
+		case ICMP_IREQ:
+		case ICMP_IREQREPLY:
+			q = p->push(sizeof(click_ip) + sizeof(struct click_icmp_sequenced));
+			need_seq_number = true;
+			break;
+		default:
+			q = p->push(sizeof(click_ip) + sizeof(struct click_icmp));
+	}
+
+    if (q) {
 	click_ip *ip = reinterpret_cast<click_ip *>(q->data());
 	ip->ip_v = 4;
 	ip->ip_hl = sizeof(click_ip) >> 2;
@@ -67,10 +105,12 @@ ICMPIPEncap::simple_action(Packet *p)
 	icmp->icmp_cksum = 0;
 #ifdef __linux__
 	icmp->icmp_identifier = _icmp_id;
-	icmp->icmp_sequence = _ip_id;
+	if(need_seq_number)
+		icmp->icmp_sequence = _ip_id;
 #else
 	icmp->icmp_identifier = htons(_icmp_id);
-	icmp->icmp_sequence = htons(_ip_id);
+	if(need_seq_number)
+		icmp->icmp_sequence = htons(_ip_id);
 #endif
 
 #if HAVE_FAST_CHECKSUM && FAST_CHECKSUM_ALIGNED
