@@ -352,7 +352,7 @@ void ConfigParser::printClickTraffic(std::ostream& ostream, NetworkLayout* netwo
 			ostream << "	-> EnsureEther(0x0800, " << networkLayout->getMacAddress((*it)->outInterface) << ", "
 					<< networkLayout->getMacAddress((*it)->inInterface) << ")" << std::endl;
 			ostream << "	-> Paint(COLOR " << (*it)->policy << ")" << std::endl;
-			ostream << "	-> queue;" << std::endl << std::endl;
+			ostream << "	-> [0]copy;" << std::endl << std::endl;
 		} else {
 			if ((*it)->protocol == TCP) {
 				int flags = 0;
@@ -383,7 +383,7 @@ void ConfigParser::printClickTraffic(std::ostream& ostream, NetworkLayout* netwo
 			ostream << "	-> EtherEncap(0x0800, " << networkLayout->getMacAddress((*it)->outInterface) << ", "
 					<< networkLayout->getMacAddress((*it)->inInterface) << ")" << std::endl;
 			ostream << "	-> Paint(COLOR " << (*it)->policy << ")" << std::endl;
-			ostream << "	-> queue;" << std::endl << std::endl;
+			ostream << "	-> [0]copy;" << std::endl << std::endl;
 		}
 	}
 }

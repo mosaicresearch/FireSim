@@ -87,9 +87,7 @@ void ClickGenerator::generateSimulation(std::ostream& output, std::string config
 	output << std::endl;
 
 	output << "//Link tables" << std::endl;
-	output
-			<< "ACCEPT :: TableLinker(ACCEPT ACCEPT_CHECK, MANGLE_PREROUTING MANGLE_PREROUTING1, MANGLE_INPUT MANGLE_INPUT1, MANGLE_FORWARD MANGLE_FORWARD1, MANGLE_OUTPUT MANGLE_OUTPUT1, MANGLE_POSTROUTING MANGLE_POSTROUTING1, NAT_PREROUTING NAT_PREROUTING1, NAT_POSTROUTING NAT_POSTROUTING1, NAT_OUTPUT NAT_OUTPUT1, FILTER_INPUT FILTER_INPUT1, FILTER_FORWARD FILTER_FORWARD1, FILTER_OUTPUT FILTER_OUTPUT1);"
-			<< std::endl;
+	output << "ACCEPT :: TableLinker(ACCEPT ACCEPT_CHECK, MANGLE_PREROUTING MANGLE_PREROUTING1, MANGLE_INPUT MANGLE_INPUT1, MANGLE_FORWARD MANGLE_FORWARD1, MANGLE_OUTPUT MANGLE_OUTPUT1, MANGLE_POSTROUTING MANGLE_POSTROUTING1, NAT_PREROUTING NAT_PREROUTING1, NAT_POSTROUTING NAT_POSTROUTING1, NAT_OUTPUT NAT_OUTPUT1, FILTER_INPUT FILTER_INPUT1, FILTER_FORWARD FILTER_FORWARD1, FILTER_OUTPUT FILTER_OUTPUT1);" << std::endl;
 	output << std::endl;
 
 	output << "//Intern - input - forward - output iptables switch" << std::endl;
@@ -111,7 +109,7 @@ void ClickGenerator::generateSimulation(std::ostream& output, std::string config
 	output << std::endl;
 
 	output << "//Traffic copy" << std::endl;
-	output << "copy :: Tee;" << std::endl;
+	output << "copy :: CopyBuffer;" << std::endl;
 	output << std::endl;
 
 	output << "//Output switch" << std::endl;
@@ -121,49 +119,22 @@ void ClickGenerator::generateSimulation(std::ostream& output, std::string config
 	output << "output[2] ->ToDump(\"output/faulty_drop.dump\");" << std::endl;
 	output << std::endl;
 
-	output << "//Traffic input queue" << std::endl;
-	output << "queue :: SimpleQueue" << std::endl;
-	output << "	-> unqueue :: Unqueue(LIMIT 1)" << std::endl;
-	output << "	-> copy;" << std::endl;
-	output << std::endl;
-
-	output << "//Send faulty packet to correct dump" << std::endl;
-	output << "copy[0] -> faulty_queue :: SimpleQueue" << std::endl;
-	output << "	-> faulty_unqueue :: Unqueue(LIMIT 1, ACTIVE false)" << std::endl;
-	output << "	-> output;" << std::endl;
-	output << std::endl;
-
 	output << "//Do simulation with input traffic" << std::endl;
-	output << "copy[1] -> MarkIPHeader(14)" << std::endl;
+	output << "copy[0] -> MarkIPHeader(14)" << std::endl;
 	output << "	-> inputCounter;" << std::endl;
 	output << std::endl;
 
-	output << "//Send the packet (if faulty) to the correct dump file and get the next input packet going" << std::endl;
-	output << "next :: Script(TYPE PACKET, write faulty_unqueue.active true)" << std::endl;
-	output << "	-> Script(TYPE PACKET, write faulty_unqueue.reset)" << std::endl;
-	output << "	-> Script(TYPE PACKET, write unqueue.reset)" << std::endl;
-	output << "	-> Discard;" << std::endl;
+	output << "//Send faulty packet to correct dump" << std::endl;
+	output << "copy[1] -> output;" << std::endl;
 	output << std::endl;
 
 	output << "//Feedback" << std::endl;
-	output << "ACCEPT_CHECK[0] -> ACCEPT_true -> Script(TYPE PACKET, write output.switch -1) -> next" << std::endl;
-	output << "ACCEPT_CHECK[1] -> ACCEPT_false -> Script(TYPE PACKET, write output.switch 0) -> next" << std::endl;
-	output << "REJECT[0] -> REJECT_true -> Script(TYPE PACKET, write output.switch -1) -> next" << std::endl;
-	output << "REJECT[1] -> REJECT_false -> Script(TYPE PACKET, write output.switch 1) -> next" << std::endl;
-	output << "DROP[0] -> DROP_true -> Script(TYPE PACKET, write output.switch -1) -> next" << std::endl;
-	output << "DROP[1] -> DROP_false -> Script(TYPE PACKET, write output.switch 2) -> next" << std::endl;
-	output << std::endl;
-
-	output << "Idle -> MANGLE_INPUT1;" << std::endl;
-	output << "Idle -> MANGLE_FORWARD1;" << std::endl;
-	output << "Idle -> MANGLE_POSTROUTING1;" << std::endl;
-	output << "Idle -> NAT_OUTPUT1;" << std::endl;
-	output << "Idle -> NAT_PREROUTING1;" << std::endl;
-	output << "Idle -> NAT_POSTROUTING1;" << std::endl;
-	output << "Idle -> FILTER_FORWARD1;" << std::endl;
-	output << "Idle -> FILTER_INPUT1;" << std::endl;
-	output << "Idle -> FILTER_OUTPUT1;" << std::endl;
-	output << "Idle -> ACCEPT_CHECK;" << std::endl;
+	output << "ACCEPT_CHECK[0] -> ACCEPT_true -> Script(TYPE PACKET, write output.switch -1) -> [1]copy" << std::endl;
+	output << "ACCEPT_CHECK[1] -> ACCEPT_false -> Script(TYPE PACKET, write output.switch 0) -> [1]copy" << std::endl;
+	output << "REJECT[0] -> REJECT_true -> Script(TYPE PACKET, write output.switch -1) -> [1]copy" << std::endl;
+	output << "REJECT[1] -> REJECT_false -> Script(TYPE PACKET, write output.switch 1) -> [1]copy" << std::endl;
+	output << "DROP[0] -> DROP_true -> Script(TYPE PACKET, write output.switch -1) -> [1]copy" << std::endl;
+	output << "DROP[1] -> DROP_false -> Script(TYPE PACKET, write output.switch 2) -> [1]copy" << std::endl;
 	output << std::endl;
 
 	output << "//Backtracker declaration" << std::endl;
@@ -232,8 +203,6 @@ void ClickGenerator::generateTraces(std::ostream& output) {
 
 	output << "// Replay specific dump file" << std::endl;
 	output << "FromDump($FILENAME)" << std::endl;
-	output << "	-> SimpleQueue" << std::endl;
-	output << "	-> unqueue :: Unqueue(LIMIT 1)" << std::endl;
 	output << "	-> MarkIPHeader(14)" << std::endl;
 	output << "	-> poke_counter :: Counter" << std::endl;
 	output << "	-> Script(TYPE PACKET," << std::endl;
@@ -243,22 +212,10 @@ void ClickGenerator::generateTraces(std::ostream& output) {
 	output << std::endl;
 
 	output << "//Link tables" << std::endl;
-	output << "Idle -> ACCEPT_CHECK :: Script(TYPE PACKET, write unqueue.reset) -> Discard;" << std::endl;
+	output << "Idle -> ACCEPT_CHECK :: Discard;" << std::endl;
 	output << "Idle -> ACCEPT :: TableLinker(ACCEPT ACCEPT_CHECK, MANGLE_PREROUTING MANGLE_PREROUTING1Print, MANGLE_INPUT MANGLE_INPUT1Print, MANGLE_FORWARD MANGLE_FORWARD1Print, MANGLE_OUTPUT MANGLE_OUTPUT1Print, MANGLE_POSTROUTING MANGLE_POSTROUTING1Print, NAT_PREROUTING NAT_PREROUTING1Print, NAT_POSTROUTING NAT_POSTROUTING1Print, NAT_OUTPUT NAT_OUTPUT1Print, FILTER_INPUT FILTER_INPUT1Print, FILTER_FORWARD FILTER_FORWARD1Print, FILTER_OUTPUT FILTER_OUTPUT1Print);" << std::endl;
-	output << "Idle -> REJECT :: Script(TYPE PACKET, write unqueue.reset) -> Discard;" << std::endl;
-	output << "Idle -> DROP :: Script(TYPE PACKET, write unqueue.reset) -> Discard;" << std::endl;
-	output << std::endl;
-
-	output << "Idle -> MANGLE_INPUT1Print;" << std::endl;
-	output << "Idle -> MANGLE_FORWARD1Print;" << std::endl;
-	output << "Idle -> MANGLE_POSTROUTING1Print;" << std::endl;
-	output << "Idle -> NAT_OUTPUT1Print;" << std::endl;
-	output << "Idle -> NAT_PREROUTING1Print;" << std::endl;
-	output << "Idle -> NAT_POSTROUTING1Print;" << std::endl;
-	output << "Idle -> FILTER_FORWARD1Print;" << std::endl;
-	output << "Idle -> FILTER_INPUT1Print;" << std::endl;
-	output << "Idle -> FILTER_OUTPUT1Print;" << std::endl;
-	output << "Idle -> ACCEPT_CHECK;" << std::endl;
+	output << "Idle -> REJECT :: Discard;" << std::endl;
+	output << "Idle -> DROP :: Discard;" << std::endl;
 	output << std::endl;
 
 	output << "//Simulation of the iptables" << std::endl;
