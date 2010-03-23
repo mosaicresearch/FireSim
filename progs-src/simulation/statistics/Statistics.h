@@ -20,7 +20,7 @@ public:
 	/**
 	 * Constructor
 	 */
-	Statistics();
+	Statistics(bool testRun);
 
 	/**
 	 * Destructor
@@ -41,6 +41,7 @@ public:
 
 private:
 	std::vector<std::pair<std::string,int> > _traceVector;
+	bool _isTestRun;
 	void askForTrace(std::string filename, int captured);
 };
 

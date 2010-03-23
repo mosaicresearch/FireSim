@@ -42,6 +42,10 @@ public:
 	void generateTraces(std::ostream& output);
 
 private:
+	void printTables(std::ostream& output, bool trace);
+	void printTrafficTypes(std::ostream& output, bool trace);
+	void printTrafficSwitch(std::ostream& output, bool trace);
+
 	Table* _filterTable;
 	Table* _natTable;
 	Table* _mangleTable;

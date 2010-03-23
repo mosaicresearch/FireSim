@@ -63,28 +63,40 @@ int main(int argc, char *argv[]) {
 	pFCConsole->open();
 	Logger::create("ConsoleLogger", pFCConsole, Message::PRIO_INFORMATION);
 
-	if (argc != 2) {
-		Logger::get("ConsoleLogger").error("syntax: firewallsimulation config-dir");
-		Logger::get("ConsoleLogger").error("E.g. : 	./firewallsimulation config/demo1");
+	bool testRun;
+	if (argc == 2) {
+		testRun = false;
+	} else if (argc == 4 && std::string(argv[2]) == "-t") {
+		testRun = true;
+	} else {
+		Logger::get("ConsoleLogger").error("syntax: firewallsimulation config-dir [-t #runs]");
+		Logger::get("ConsoleLogger").error("The config-dir is a directory containing the 4 necessary input files: config.xml, network_layout.xml, script_vars.sh and shorewall.compiled");
+		Logger::get("ConsoleLogger").error("The -t option is used for throughput testing in combination with the 'time' command; non-error output is suppressed");
+		Logger::get("ConsoleLogger").error("#runs denotes how many times the click scripts should be run");
+		Logger::get("ConsoleLogger").error("A normal run would for example look like: ./firewallsimulation config/demo1");
+		Logger::get("ConsoleLogger").error("A test run would for example look like:	time ./firewallsimulation config/demo1 -t 10");
 		exit(1);
 	}
 
-//	Logger::get("ConsoleLogger").information("dir: " + std::string(argv[2]));
 	std::string config_path(argv[1]);
 	if (config_path.find_last_of('/') != config_path.length()-1)
 		config_path.append("/");
 
-	//print ascii-logo
-	std::stringstream stringstream;
-	printFireSimLogo(stringstream);
-	Logger::get("ConsoleLogger").information(stringstream.str());
+	if (!testRun) {
+		//print ascii-logo
+		std::stringstream stringstream;
+		printFireSimLogo(stringstream);
+		Logger::get("ConsoleLogger").information(stringstream.str());
 
-	//Check whether required input files are present in config folder
-	Logger::get("ConsoleLogger").information("Required input files:");
+		//Check whether required input files are present in config folder
+		Logger::get("ConsoleLogger").information("Required input files:");
+	}
+
 	//shorewall.compiled
 	Poco::StringTokenizer shorewallCompiledTokenizer(config_path + SHOREWALLCOMPILED_FILENAME, "/", Poco::StringTokenizer::TOK_IGNORE_EMPTY);
-	if (checkFile(config_path + SHOREWALLCOMPILED_FILENAME)){
-		Logger::get("ConsoleLogger").information(shorewallCompiledTokenizer[shorewallCompiledTokenizer.count()-1] + " is found in config folder.");
+	if (checkFile(config_path + SHOREWALLCOMPILED_FILENAME)) {
+		if (!testRun)
+			Logger::get("ConsoleLogger").information(shorewallCompiledTokenizer[shorewallCompiledTokenizer.count()-1] + " is found in config folder.");
 	} else {
 		Logger::get("ConsoleLogger").information(shorewallCompiledTokenizer[shorewallCompiledTokenizer.count()-1] + " is not found in config folder. Shorewall can generate this file.");
 		exit(1);
@@ -92,8 +104,9 @@ int main(int argc, char *argv[]) {
 
 	//config.xml
 	Poco::StringTokenizer configTokenizer(config_path + CONFIG_FILENAME, "/", Poco::StringTokenizer::TOK_IGNORE_EMPTY);
-	if (checkFile(config_path + CONFIG_FILENAME)){
-		Logger::get("ConsoleLogger").information(configTokenizer[configTokenizer.count()-1] + " is found in config folder.");
+	if (checkFile(config_path + CONFIG_FILENAME)) {
+		if (!testRun)
+			Logger::get("ConsoleLogger").information(configTokenizer[configTokenizer.count()-1] + " is found in config folder.");
 	} else {
 		Logger::get("ConsoleLogger").information(configTokenizer[configTokenizer.count()-1] + " is not found in config folder. See README.txt for more info.");
 		exit(1);
@@ -101,8 +114,9 @@ int main(int argc, char *argv[]) {
 
 	//network_layout.xml
 	Poco::StringTokenizer networkLayoutTokenizer(config_path + NETWORKLAYOUT_FILENAME, "/", Poco::StringTokenizer::TOK_IGNORE_EMPTY);
-	if (checkFile(config_path + NETWORKLAYOUT_FILENAME)){
-		Logger::get("ConsoleLogger").information(networkLayoutTokenizer[networkLayoutTokenizer.count()-1] + " is found in config folder.");
+	if (checkFile(config_path + NETWORKLAYOUT_FILENAME)) {
+		if (!testRun)
+			Logger::get("ConsoleLogger").information(networkLayoutTokenizer[networkLayoutTokenizer.count()-1] + " is found in config folder.");
 	} else {
 		Logger::get("ConsoleLogger").information(networkLayoutTokenizer[networkLayoutTokenizer.count()-1] + " is not found in config folder. Run [$config]/firewall_config_extract.sh on your firewall. It will generate " + networkLayoutTokenizer[networkLayoutTokenizer.count()-1]);
 		exit(1);
@@ -110,13 +124,15 @@ int main(int argc, char *argv[]) {
 
 	//script_vars.sh
 	Poco::StringTokenizer scriptVarsTokenizer(config_path + SCRIPT_VARS_FILENAME, "/", Poco::StringTokenizer::TOK_IGNORE_EMPTY);
-	if (checkFile(config_path + SCRIPT_VARS_FILENAME)){
-		Logger::get("ConsoleLogger").information(scriptVarsTokenizer[scriptVarsTokenizer.count()-1] + " is found in config folder.");
+	if (checkFile(config_path + SCRIPT_VARS_FILENAME)) {
+		if (!testRun) {
+			Logger::get("ConsoleLogger").information(scriptVarsTokenizer[scriptVarsTokenizer.count()-1] + " is found in config folder.");
+			Logger::get("ConsoleLogger").information("");
+		}
 	} else {
 		Logger::get("ConsoleLogger").information(scriptVarsTokenizer[scriptVarsTokenizer.count()-1] + " is not found in config folder. Run [$config]/firewall_config_extract.sh on your firewall. It will generate " + scriptVarsTokenizer[scriptVarsTokenizer.count()-1]);
 		exit(1);
 	}
-	Logger::get("ConsoleLogger").information("");
 
 	//Set up output
 	std::ofstream clickSimulationScript;
@@ -131,26 +147,29 @@ int main(int argc, char *argv[]) {
 	clickGenerator.generateTraces(clickTraceScript);
 	clickTraceScript.close();
 
-	//Start simulation
-	Logger::get("ConsoleLogger").information("Simulate firewall with CLICK.");
-	Logger::get("ConsoleLogger").information("");
-	Poco::Thread* thread = new Poco::Thread();
-	StartClick* clickSimulation = new StartClick(SIMULATION_SCRIPT, CLICK_PORT, " 1>/dev/null 2>/dev/null");
-	thread->start(*clickSimulation);
+	int numRuns = 1;
+	if (testRun)
+		numRuns = stringToInt(std::string(argv[3]));
 
-	//Feedback to the user
-	Statistics stats = Statistics();
-	stats.getUserReport();
+	for (int i = 1; i <= numRuns; i++) {
+		//Start simulation
+		if (!testRun) {
+			Logger::get("ConsoleLogger").information("Simulate firewall with CLICK.");
+			Logger::get("ConsoleLogger").information("");
+		}
+		Poco::Thread* thread = new Poco::Thread();
+		StartClick* clickSimulation = new StartClick(SIMULATION_SCRIPT, CLICK_PORT, " 1>/dev/null 2>/dev/null");
+		thread->start(*clickSimulation);
 
-	//Stop simulation
-	if (clickSimulation) {
+		//Feedback to the user
+		Statistics stats = Statistics(testRun);
+		stats.getUserReport();
+
+		//Stop simulation
 		delete(clickSimulation);
+		delete(thread);
+
+		//Do the traces the user requested
+		stats.doTraces();
 	}
-
-	Logger::get("ConsoleLogger").information("");
-
-	//Do the traces the user requested
-	stats.doTraces();
-
-	Logger::get("ConsoleLogger").information("");
 }

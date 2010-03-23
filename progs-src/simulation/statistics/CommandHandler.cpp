@@ -45,7 +45,7 @@ CommandHandler::CommandHandler(std::string host, int port) {
 
 		} catch (Poco::Net::ConnectionRefusedException &e) {
 			//can not yet connect
-			Logger::get("ConsoleLogger").trace("CommandHandler.cpp" + e.displayText());
+			Logger::get("ConsoleLogger").debug("CommandHandler.cpp: " + e.displayText());
 		} //end try-catch
 	} //end while
 }
@@ -55,30 +55,34 @@ CommandHandler::~CommandHandler(){
 }
 
 std::string CommandHandler::execute(std::string clickCmd) {
-	Poco::Net::SocketStream socketStream(_socket);
-
-	//Send command
-	Logger::get("ConsoleLogger").debug("CommandHandler.cpp: send " + clickCmd + " to click simulation.");
-	socketStream << clickCmd << endl;
-
-	string result;
-	//Receive reply: 200 Read handler 'clickCmd' OK
-	std::getline(socketStream, result);
-	Logger::get("ConsoleLogger").debug("CommandHandler.cpp: " + result);
-
-	//Receive reply: DATA 'number'
-	std::getline(socketStream, result);
-	Logger::get("ConsoleLogger").debug("CommandHandler.cpp: " + result);
-
-	Poco::StringTokenizer tokenizer(result, " ", Poco::StringTokenizer::TOK_IGNORE_EMPTY);
-	int outputLength = stringToInt(tokenizer[1]);
-	Logger::get("ConsoleLogger").debug("CommandHandler.cpp: Click reply has " + tokenizer[1] + " characters.");
-
 	string clickReply = "";
-	for (int i = 0; i < outputLength; i++) {
-		char tmp;
-		socketStream.get(tmp);
-		clickReply.append(1, tmp);
-	}
+	string result = "";
+	int triesLeft = 3;
+	do {
+		Poco::Net::SocketStream socketStream(_socket);
+		//Send command
+		Logger::get("ConsoleLogger").debug("CommandHandler.cpp: send " + clickCmd + " to click simulation.");
+		socketStream << clickCmd << endl;
+
+		//Receive reply: 200 Read handler 'clickCmd' OK
+		std::getline(socketStream, result);
+		Logger::get("ConsoleLogger").debug("CommandHandler.cpp: " + result);
+
+		//Receive reply: DATA 'number'
+		std::getline(socketStream, result);
+		Logger::get("ConsoleLogger").debug("CommandHandler.cpp: " + result);
+
+		if (result != "") {
+			Poco::StringTokenizer tokenizer(result, " ", Poco::StringTokenizer::TOK_IGNORE_EMPTY);
+			int outputLength = stringToInt(tokenizer[1]);
+			Logger::get("ConsoleLogger").debug("CommandHandler.cpp: #chars in Click reply is " + std::string(tokenizer[1]));
+
+			for (int i = 0; i < outputLength; i++) {
+						char tmp;
+						socketStream.get(tmp);
+						clickReply.append(1, tmp);
+					}
+		}
+	} while (result == "" && --triesLeft > 0);
 	return clickReply;
 }

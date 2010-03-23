@@ -11,7 +11,6 @@
 #include "assert.h"
 
 //Poco
-#include "Poco/Logger.h"
 #include "Poco/DOM/Node.h"
 #include "Poco/Exception.h"
 #include "Poco/StringTokenizer.h"
@@ -52,8 +51,6 @@ ConfigParser* ConfigParser::getInstance() {
 }
 
 void ConfigParser::parse(Poco::XML::Document* xmlDocument, NetworkLayout* networkLayout) {
-	Poco::Logger::get("ConsoleLogger").information("Analyzing config.xml...");
-
 	Node* configNode = xmlDocument->firstChild();
 	if(!configNode || (configNode->nodeName()!=XMLConstants::CONFIG_TAG)){
 		std::cout << "config.xml: No element with name " << XMLConstants::CONFIG_TAG << " at the appropiate place." << std::endl;

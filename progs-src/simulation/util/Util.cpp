@@ -126,18 +126,20 @@ void removeWhitespace(std::string& str){
 }
 
 void removeFile(std::string file, std::string path) {
-	if (remove((path + file).c_str()) == -1) {
-		std::cout << "Remove of file " << file << " failed" << std::endl;
-		exit(1);
-	}
+	remove((path + file).c_str());
+//	if (remove((path + file).c_str()) == -1) {
+//		std::cout << "Remove of file " << file << " failed" << std::endl;
+//		exit(1);
+//	}
 }
 
 void removeFiles(std::vector<std::string> files, std::string path) {
 	for (std::vector<std::string>::iterator it = files.begin(); it != files.end(); ++it) {
-		if (remove((path + (*it)).c_str()) == -1) {
-			std::cout << "Remove of file " << *it << " failed" << std::endl;
-			exit(1);
-		}
+		remove((path + (*it)).c_str());
+//		if (remove((path + (*it)).c_str()) == -1) {
+//			std::cout << "Remove of file " << *it << " failed" << std::endl;
+//			exit(1);
+//		}
 	}
 }
 

@@ -36,6 +36,247 @@ ClickGenerator::~ClickGenerator() {
 		delete _natTable;
 	}
 }
+
+void ClickGenerator::printTables(std::ostream& output, bool trace) {
+	assert(_filterTable);
+	assert(_natTable);
+	assert(_mangleTable);
+
+	output << "elementclass MangleTable {" << std::endl;
+	output << "	//Backtracker declaration" << std::endl;
+	output << "	Idle -> bt :: Backtracker;" << std::endl;
+	output << std::endl;
+	output << "	//Translation of the Iptables rules to click syntax" << std::endl;
+	_mangleTable->printClickClassifiers(output, "MANGLE_");
+	output << std::endl;
+	if (trace) {
+		output << "//Pretty printers" << std::endl;
+		_mangleTable->printPrettyPrinters(output, "MANGLE_");
+		output << std::endl;
+	}
+	output << "	//Element input & output" << std::endl;
+	output << "	input[0] -> ps :: PaintSwitch(ANNO 19);" << std::endl;
+	output << "	ps[0] -> MANGLE_FORWARD1" << (trace?"Print;":";") << std::endl;
+	output << "	ps[1] -> MANGLE_INPUT1" << (trace?"Print;":";") << std::endl;
+	output << "	ps[2] -> MANGLE_OUTPUT1" << (trace?"Print;":";") << std::endl;
+	output << "	ps[3] -> MANGLE_POSTROUTING1" << (trace?"Print;":";") << std::endl;
+	output << "	ps[4] -> MANGLE_PREROUTING1" << (trace?"Print;":";") << std::endl;
+	output << "	Idle -> ACCEPT :: Null -> [0]output;" << std::endl;
+	output << "	Idle -> REJECT :: Null -> [1]output;" << std::endl;
+	output << "	Idle -> DROP :: Null -> [2]output;" << std::endl;
+	output << std::endl;
+	output << "	//Linking of the Iptables rules" << std::endl;
+	if (trace)
+		_mangleTable->printClickTraceSimulation(output, "MANGLE_");
+	else
+		_mangleTable->printClickSimulation(output, "MANGLE_");
+	output << "}" << std::endl;
+	output << std::endl;
+
+	output << "elementclass NatTable {" << std::endl;
+	output << "	//Backtracker declaration" << std::endl;
+	output << "	Idle -> bt :: Backtracker;" << std::endl;
+	output << std::endl;
+	_networkLayout->printMasqueradeSwitch(output);
+	output << "	//Translation of the Iptables rules to click syntax" << std::endl;
+	_natTable->printClickClassifiers(output, "NAT_");
+	output << std::endl;
+	if (trace) {
+		output << "//Pretty printers" << std::endl;
+		_natTable->printPrettyPrinters(output, "NAT_");
+		output << std::endl;
+	}
+	output << "	//Element input & output" << std::endl;
+	output << "	input[0] -> ps :: PaintSwitch(ANNO 19);" << std::endl;
+	output << "	ps[0] -> NAT_OUTPUT1" << (trace?"Print;":";") << std::endl;
+	output << "	ps[1] -> NAT_POSTROUTING1" << (trace?"Print;":";") << std::endl;
+	output << "	ps[2] -> NAT_PREROUTING1" << (trace?"Print;":";") << std::endl;
+	output << "	Idle -> ACCEPT :: Null -> [0]output;" << std::endl;
+	output << "	Idle -> REJECT :: Null -> [1]output;" << std::endl;
+	output << "	Idle -> DROP :: Null -> [2]output;" << std::endl;
+	output << std::endl;
+	output << "	//Linking of the Iptables rules" << std::endl;
+	if (trace)
+		_natTable->printClickTraceSimulation(output, "NAT_");
+	else
+		_natTable->printClickSimulation(output, "NAT_");
+	output << "}" << std::endl;
+	output << std::endl;
+
+	output << "elementclass FilterTable {" << std::endl;
+	output << "	//Backtracker declaration" << std::endl;
+	output << "	Idle -> bt :: Backtracker;" << std::endl;
+	output << std::endl;
+	output << "	//Translation of the Iptables rules to click syntax" << std::endl;
+	_filterTable->printClickClassifiers(output, "FILTER_");
+	output << std::endl;
+	if (trace) {
+		output << "//Pretty printers" << std::endl;
+		_filterTable->printPrettyPrinters(output, "FILTER_");
+		output << std::endl;
+	}
+	output << "	input[0] -> ps :: PaintSwitch(ANNO 19);" << std::endl;
+	output << "	ps[0] -> FILTER_FORWARD1" << (trace?"Print;":";") << std::endl;
+	output << "	ps[1] -> FILTER_INPUT1" << (trace?"Print;":";") << std::endl;
+	output << "	ps[2] -> FILTER_OUTPUT1" << (trace?"Print;":";") << std::endl;
+	output << "	Idle -> ACCEPT :: Null -> [0]output;" << std::endl;
+	output << "	Idle -> REJECT :: Null -> [1]output;" << std::endl;
+	output << "	Idle -> DROP :: Null -> [2]output;" << std::endl;
+	output << std::endl;
+	output << "	//Linking of the Iptables rules" << std::endl;
+	if (trace)
+		_filterTable->printClickTraceSimulation(output, "FILTER_");
+	else
+		_filterTable->printClickSimulation(output, "FILTER_");
+	output << "}" << std::endl;
+	output << std::endl;
+}
+
+void ClickGenerator::printTrafficTypes(std::ostream& output, bool trace) {
+	output << "elementclass ForwardTraffic {" << std::endl;
+	output << "	input[0]"
+		<< (trace?" -> Script(TYPE PACKET, print \"Entering the Prerouting chain of the Mangle table.\")":"")
+		<< " -> Paint(ANNO 19, COLOR 4) -> mangle_prerouting :: MangleTable;" << std::endl;
+	output << "	mangle_prerouting[0]"
+		<< (trace?" -> Script(TYPE PACKET, print \"Entering the Prerouting chain of the Nat table.\")":"")
+		<< "-> Paint(ANNO 19, COLOR 2) -> nat_prerouting :: NatTable;" << std::endl;
+	output << "	mangle_prerouting[1] -> [1]output;" << std::endl;
+	output << "	mangle_prerouting[2] -> [2]output;" << std::endl;
+	output << "	nat_prerouting[0]"
+		<< (trace?" -> Script(TYPE PACKET, print \"Entering the Forward chain of the Mangle table.\")":"")
+		<< "-> Paint(ANNO 19, COLOR 0) -> mangle_forward :: MangleTable;" << std::endl;
+	output << "	nat_prerouting[1] -> [1]output;" << std::endl;
+	output << "	nat_prerouting[2] -> [2]output;" << std::endl;
+	output << "	mangle_forward[0]"
+		<< (trace?" -> Script(TYPE PACKET, print \"Entering the Forward chain of the Filter table.\")":"")
+		<< "-> Paint(ANNO 19, COLOR 0) -> filter_forward :: FilterTable;" << std::endl;
+	output << "	mangle_forward[1] -> [1]output;" << std::endl;
+	output << "	mangle_forward[2] -> [2]output;" << std::endl;
+	output << "	filter_forward[0]"
+		<< (trace?" -> Script(TYPE PACKET, print \"Entering the Postrouting chain of the Mangle table.\")":"")
+		<< "-> Paint(ANNO 19, COLOR 3) -> mangle_postrouting :: MangleTable;" << std::endl;
+	output << "	filter_forward[1] -> [1]output;" << std::endl;
+	output << "	filter_forward[2] -> [2]output;" << std::endl;
+	output << "	mangle_postrouting[0]"
+		<< (trace?" -> Script(TYPE PACKET, print \"Entering the Postrouting chain of the Nat table.\")":"")
+		<< "-> Paint(ANNO 19, COLOR 1) -> nat_postrouting :: NatTable;" << std::endl;
+	output << "	mangle_postrouting[1] -> [1]output;" << std::endl;
+	output << "	mangle_postrouting[2] -> [2]output;" << std::endl;
+	output << "	nat_postrouting[0] -> [0]output;" << std::endl;
+	output << "	nat_postrouting[1] -> [1]output;" << std::endl;
+	output << "	nat_postrouting[2] -> [2]output;" << std::endl;
+	output << "}" << std::endl;
+	output << std::endl;
+
+	output << "elementclass InputTraffic {" << std::endl;
+	output << "	input[0]"
+		<< (trace?" -> Script(TYPE PACKET, print \"Entering the Prerouting chain of the Mangle table.\")":"")
+		<< "-> Paint(ANNO 19, COLOR 4) -> mangle_prerouting :: MangleTable;" << std::endl;
+	output << "	mangle_prerouting[0]"
+		<< (trace?" -> Script(TYPE PACKET, print \"Entering the Prerouting chain of the Nat table.\")":"")
+		<< "-> Paint(ANNO 19, COLOR 2) -> nat_prerouting :: NatTable;" << std::endl;
+	output << "	mangle_prerouting[1] -> [1]output;" << std::endl;
+	output << "	mangle_prerouting[2] -> [2]output;" << std::endl;
+	output << "	nat_prerouting[0]"
+		<< (trace?" -> Script(TYPE PACKET, print \"Entering the Input chain of the Mangle table.\")":"")
+		<< "-> Paint(ANNO 19, COLOR 1) -> mangle_input :: MangleTable;" << std::endl;
+	output << "	nat_prerouting[1] -> [1]output;" << std::endl;
+	output << "	nat_prerouting[2] -> [2]output;" << std::endl;
+	output << "	mangle_input[0]"
+		<< (trace?" -> Script(TYPE PACKET, print \"Entering the Input chain of the Filter table.\")":"")
+		<< "-> Paint(ANNO 19, COLOR 1) -> filter_input :: FilterTable;" << std::endl;
+	output << "	mangle_input[1] -> [1]output;" << std::endl;
+	output << "	mangle_input[2] -> [2]output;" << std::endl;
+	output << "	filter_input[0] -> [0]output;" << std::endl;
+	output << "	filter_input[1] -> [1]output;" << std::endl;
+	output << "	filter_input[2] -> [2]output;" << std::endl;
+	output << "}" << std::endl;
+	output << std::endl;
+
+	output << "elementclass OutputTraffic {" << std::endl;
+	output << "	input[0]"
+		<< (trace?" -> Script(TYPE PACKET, print \"Entering the Output chain of the Mangle table.\")":"")
+		<< " -> Paint(ANNO 19, COLOR 2) -> mangle_output :: MangleTable;" << std::endl;
+	output << "	mangle_output[0]"
+		<< (trace?" -> Script(TYPE PACKET, print \"Entering the Output chain of the Nat table.\")":"")
+		<< "-> Paint(ANNO 19, COLOR 0) -> nat_output :: NatTable;" << std::endl;
+	output << "	mangle_output[1] -> [1]output;" << std::endl;
+	output << "	mangle_output[2] -> [2]output;" << std::endl;
+	output << "	nat_output[0]"
+		<< (trace?" -> Script(TYPE PACKET, print \"Entering the Output chain of the Filter table.\")":"")
+		<< " -> Paint(ANNO 19, COLOR 2) -> filter_output :: FilterTable;" << std::endl;
+	output << "	nat_output[1] -> [1]output;" << std::endl;
+	output << "	nat_output[2] -> [2]output;" << std::endl;
+	output << "	filter_output[0]"
+		<< (trace?" -> Script(TYPE PACKET, print \"Entering the Postrouting chain of the Mangle table.\")":"")
+		<< " -> Paint(ANNO 19, COLOR 3) -> mangle_postrouting :: MangleTable;" << std::endl;
+	output << "	filter_output[1] -> [1]output;" << std::endl;
+	output << "	filter_output[2] -> [2]output;" << std::endl;
+	output << "	mangle_postrouting[0]"
+		<< (trace?" -> Script(TYPE PACKET, print \"Entering the Postrouting chain of the Nat table.\")":"")
+		<< " -> Paint(ANNO 19, COLOR 1) -> nat_postrouting :: NatTable;" << std::endl;
+	output << "	mangle_postrouting[1] -> [1]output;" << std::endl;
+	output << "	mangle_postrouting[2] -> [2]output;" << std::endl;
+	output << "	nat_postrouting[0] -> [0]output;" << std::endl;
+	output << "	nat_postrouting[1] -> [1]output;" << std::endl;
+	output << "	nat_postrouting[2] -> [2]output;" << std::endl;
+	output << "}" << std::endl;
+	output << std::endl;
+
+	output << "elementclass InternalTraffic {" << std::endl;
+	output << "	input[0]"
+		<< (trace?" -> Script(TYPE PACKET, print \"Following the OUTPUT traffic chains.\")":"")
+		<< " -> out :: OutputTraffic;" << std::endl;
+	output << "	out[0]"
+		<< (trace?" -> Script(TYPE PACKET, print \"Following the INPUT traffic chains.\")":"")
+		<< " -> in :: InputTraffic;" << std::endl;
+	output << "	out[1] -> [1]output;" << std::endl;
+	output << "	out[2] -> [2]output;" << std::endl;
+	output << "	in[0] -> [0]output;" << std::endl;
+	output << "	in[1] -> [1]output;" << std::endl;
+	output << "	in[2] -> [2]output;" << std::endl;
+	output << "}" << std::endl;
+	output << std::endl;
+}
+
+void ClickGenerator::printTrafficSwitch(std::ostream& output, bool trace) {
+	output << "//Iptables traffic type switch" << std::endl;
+	_networkLayout->printStartChainSwitch(output, "IPTABLES");
+	output << std::endl;
+	output << "//Internal traffic" << std::endl;
+	output << "IPTABLES[0]"
+		<< (trace?" -> Script(TYPE PACKET, print \"This packet is classified as INTERNAL traffic.\")":"")
+		<< " -> internalTraffic :: InternalTraffic;" << std::endl;
+	output << "internalTraffic[0] -> ACCEPT;" << std::endl;
+	output << "internalTraffic[1] -> REJECT;" << std::endl;
+	output << "internalTraffic[2] -> DROP;" << std::endl;
+	output << std::endl;
+	output << "//Output traffic" << std::endl;
+	output << "IPTABLES[1]"
+		<< (trace?" -> Script(TYPE PACKET, print \"This packet is classified as OUTPUT traffic.\")":"")
+		<< " -> outputTraffic :: OutputTraffic;" << std::endl;
+	output << "outputTraffic[0] -> ACCEPT;" << std::endl;
+	output << "outputTraffic[1] -> REJECT;" << std::endl;
+	output << "outputTraffic[2] -> DROP;" << std::endl;
+	output << std::endl;
+	output << "//Input traffic" << std::endl;
+	output << "IPTABLES[2]"
+		<< (trace?" -> Script(TYPE PACKET, print \"This packet is classified as INPUT traffic.\")":"")
+		<< " -> inputTraffic :: InputTraffic;" << std::endl;
+	output << "inputTraffic[0] -> ACCEPT;" << std::endl;
+	output << "inputTraffic[1] -> REJECT;" << std::endl;
+	output << "inputTraffic[2] -> DROP;" << std::endl;
+	output << std::endl;
+	output << "//Forward traffic" << std::endl;
+	output << "IPTABLES[3]"
+		<< (trace?" -> Script(TYPE PACKET, print \"This packet is classified as FORWARD traffic.\")":"")
+		<< " -> forwardTraffic :: ForwardTraffic;" << std::endl;
+	output << "forwardTraffic[0] -> ACCEPT;" << std::endl;
+	output << "forwardTraffic[1] -> REJECT;" << std::endl;
+	output << "forwardTraffic[2] -> DROP;" << std::endl;
+	output << std::endl;
+}
+
 void ClickGenerator::generateSimulation(std::ostream& output, std::string config_path) {
 	Poco::XML::DOMParser DOMparser;
 
@@ -71,32 +312,20 @@ void ClickGenerator::generateSimulation(std::ostream& output, std::string config
 
 	//Generate click script
 	output << "//Please don't alter the content of this file generated by FireSim" << std::endl;
-	output << "//authors: Nico Van Looy & Jens De Wit - 2009" << std::endl;
+	output << "//authors: Nico Van Looy (2008-2009) & Jens De Wit (2008-2010)" << std::endl;
 	output << std::endl;
 
-	output << "//Translation of iptables to click syntax" << std::endl;
-	_mangleTable->printClickClassifiers(output, "MANGLE_");
-	_natTable->printClickClassifiers(output, "NAT_");
-	_filterTable->printClickClassifiers(output, "FILTER_");
-	output << std::endl;
+	printTables(output, false);
+
+	printTrafficTypes(output, false);
 
 	output << "//Painters for statistics" << std::endl;
-	output << "Idle -> ACCEPT_CHECK :: CheckPaint(COLOR 0);" << std::endl;
+	output << "Idle -> ACCEPT :: CheckPaint(COLOR 0);" << std::endl;
 	output << "Idle -> REJECT :: CheckPaint(COLOR 1);" << std::endl;
 	output << "Idle -> DROP :: CheckPaint(COLOR 2);" << std::endl;
 	output << std::endl;
 
-	output << "//Link tables" << std::endl;
-	output << "ACCEPT :: TableLinker(ACCEPT ACCEPT_CHECK, MANGLE_PREROUTING MANGLE_PREROUTING1, MANGLE_INPUT MANGLE_INPUT1, MANGLE_FORWARD MANGLE_FORWARD1, MANGLE_OUTPUT MANGLE_OUTPUT1, MANGLE_POSTROUTING MANGLE_POSTROUTING1, NAT_PREROUTING NAT_PREROUTING1, NAT_POSTROUTING NAT_POSTROUTING1, NAT_OUTPUT NAT_OUTPUT1, FILTER_INPUT FILTER_INPUT1, FILTER_FORWARD FILTER_FORWARD1, FILTER_OUTPUT FILTER_OUTPUT1);" << std::endl;
-	output << std::endl;
-
-	output << "//Intern - input - forward - output iptables switch" << std::endl;
-	_networkLayout->printStartChainSwitch(output, "IPTABLES");
-	output << "IPTABLES[0] -> Script(TYPE PACKET, write ACCEPT.chain \"INTERN\") -> MANGLE_OUTPUT1; //Internal traffic" << std::endl; //Internal Traffic
-	output << "IPTABLES[1] -> Script(TYPE PACKET, write ACCEPT.chain \"OUTPUT\") -> MANGLE_OUTPUT1; //Output Chain" << std::endl; //Output Chain
-	output << "IPTABLES[2] -> Script(TYPE PACKET, write ACCEPT.chain \"INPUT\") -> MANGLE_PREROUTING1; //Input Chain" << std::endl; //Input Chain
-	output << "IPTABLES[3] -> Script(TYPE PACKET, write ACCEPT.chain \"FORWARD\") -> MANGLE_PREROUTING1; //Forward Chain" << std::endl; //Forward Chain
-	output << std::endl;
+	printTrafficSwitch(output, false);
 
 	output << "//Counters for statistics" << std::endl;
 	output << "inputCounter :: Counter -> IPTABLES;" << std::endl;
@@ -129,26 +358,15 @@ void ClickGenerator::generateSimulation(std::ostream& output, std::string config
 	output << std::endl;
 
 	output << "//Feedback" << std::endl;
-	output << "ACCEPT_CHECK[0] -> ACCEPT_true -> Script(TYPE PACKET, write output.switch -1) -> [1]copy" << std::endl;
-	output << "ACCEPT_CHECK[1] -> ACCEPT_false -> Script(TYPE PACKET, write output.switch 0) -> [1]copy" << std::endl;
+	output << "ACCEPT[0] -> ACCEPT_true -> Script(TYPE PACKET, write output.switch -1) -> [1]copy" << std::endl;
+	output << "ACCEPT[1] -> ACCEPT_false -> Script(TYPE PACKET, write output.switch 0) -> [1]copy" << std::endl;
 	output << "REJECT[0] -> REJECT_true -> Script(TYPE PACKET, write output.switch -1) -> [1]copy" << std::endl;
 	output << "REJECT[1] -> REJECT_false -> Script(TYPE PACKET, write output.switch 1) -> [1]copy" << std::endl;
 	output << "DROP[0] -> DROP_true -> Script(TYPE PACKET, write output.switch -1) -> [1]copy" << std::endl;
 	output << "DROP[1] -> DROP_false -> Script(TYPE PACKET, write output.switch 2) -> [1]copy" << std::endl;
 	output << std::endl;
 
-	output << "//Backtracker declaration" << std::endl;
-	output << "Idle -> bt :: Backtracker;" << std::endl;
-	output << std::endl;
-
-	_networkLayout->printMasqueradeSwitch(output);
-
 	configParser->printClickTraffic(output, _networkLayout);
-
-	output << "//Simulation of the iptables" << std::endl;
-	_mangleTable->printClickSimulation(output, "MANGLE_");
-	_natTable->printClickSimulation(output, "NAT_");
-	_filterTable->printClickSimulation(output, "FILTER_");
 }
 
 void ClickGenerator::generateTraces(std::ostream& output) {
@@ -157,70 +375,28 @@ void ClickGenerator::generateTraces(std::ostream& output) {
 	assert(_mangleTable);
 
 	output << "//Please don't alter the content of this file generated by FireSim" << std::endl;
-	output << "//authors: Nico Van Looy & Jens De Wit - 2009" << std::endl;
+	output << "//authors: Nico Van Looy (2008-2009) & Jens De Wit (2008-2010)" << std::endl;
 	output << std::endl;
 
-	output << "//Translation of iptables to click syntax" << std::endl;
-	_mangleTable->printClickClassifiers(output, "MANGLE_");
-	_natTable->printClickClassifiers(output, "NAT_");
-	_filterTable->printClickClassifiers(output, "FILTER_");
-	output << std::endl;
+	printTables(output, true);
 
-	output << "//Pretty printers" << std::endl;
-	_mangleTable->printPrettyPrinters(output, "MANGLE_");
-	_natTable->printPrettyPrinters(output, "NAT_");
-	_filterTable->printPrettyPrinters(output, "FILTER_");
-	output << std::endl;
+	printTrafficTypes(output, true);
 
-	output << "//Intern - input - forward - output iptables switch" << std::endl;
-	_networkLayout->printStartChainSwitch(output, "IPTABLES");
-	output << "IPTABLES[0] -> Script(TYPE PACKET, write ACCEPT.chain \"INTERN\") //Internal traffic" << std::endl; //Internal Traffic
-	output << "	-> Script(TYPE PACKET, print \"This packet is classified as INTERNAL traffic.\")" << std::endl;
-	output << "	-> Script(TYPE PACKET, print \"Start -> MANGLE Table (Output Chain)\")" << std::endl;
-	output << "	-> MANGLE_OUTPUT1Print;" << std::endl; //Internal Traffic
-
-	output << "IPTABLES[1] -> Script(TYPE PACKET, write ACCEPT.chain \"OUTPUT\") //Output Chain" << std::endl;
-	output << "	-> Script(TYPE PACKET, print \"This packet is classified as OUTPUT.\")" << std::endl;
-	output << "	-> Script(TYPE PACKET, print \"Start -> MANGLE Table (Output Chain)\")" << std::endl;
-	output << "	-> MANGLE_OUTPUT1Print;" << std::endl; //Output Chain
-
-	output << "IPTABLES[2] -> Script(TYPE PACKET, write ACCEPT.chain \"INPUT\") //Input Chain" << std::endl;
-	output << "	-> Script(TYPE PACKET, print \"This packet is classified as INPUT.\")" << std::endl;
-	output << "	-> Script(TYPE PACKET, print \"Start -> MANGLE Table (Prerouting Chain)\")" << std::endl;
-	output << "	-> MANGLE_PREROUTING1Print;" << std::endl; //Input Chain
-
-	output << "IPTABLES[3] -> Script(TYPE PACKET, write ACCEPT.chain \"FORWARD\") //Forward Chain" << std::endl;
-	output << "	-> Script(TYPE PACKET, print \"This packet is classified as FORWARD.\")" << std::endl;
-	output << "	-> Script(TYPE PACKET, print \"Start -> MANGLE Table (Prerouting Chain)\")" << std::endl;
-	output << "	-> MANGLE_PREROUTING1Print;" << std::endl; //Forward Chain
-	output << std::endl;
-
-	output << "//Backtracker declaration" << std::endl;
-	output << "Idle -> bt :: Backtracker;" << std::endl;
-	output << std::endl;
-
-	_networkLayout->printMasqueradeSwitch(output);
-
-	output << "// Replay specific dump file" << std::endl;
-	output << "FromDump($FILENAME)" << std::endl;
-	output << "	-> MarkIPHeader(14)" << std::endl;
-	output << "	-> poke_counter :: Counter" << std::endl;
-	output << "	-> Script(TYPE PACKET," << std::endl;
-	output << "		set packetnr $(poke_counter.count)," << std::endl;
-	output << "		print \"\nPacket\" $packetnr)" << std::endl;
-	output << "	-> IPTABLES;" << std::endl;
-	output << std::endl;
-
-	output << "//Link tables" << std::endl;
-	output << "Idle -> ACCEPT_CHECK :: Discard;" << std::endl;
-	output << "Idle -> ACCEPT :: TableLinker(ACCEPT ACCEPT_CHECK, MANGLE_PREROUTING MANGLE_PREROUTING1Print, MANGLE_INPUT MANGLE_INPUT1Print, MANGLE_FORWARD MANGLE_FORWARD1Print, MANGLE_OUTPUT MANGLE_OUTPUT1Print, MANGLE_POSTROUTING MANGLE_POSTROUTING1Print, NAT_PREROUTING NAT_PREROUTING1Print, NAT_POSTROUTING NAT_POSTROUTING1Print, NAT_OUTPUT NAT_OUTPUT1Print, FILTER_INPUT FILTER_INPUT1Print, FILTER_FORWARD FILTER_FORWARD1Print, FILTER_OUTPUT FILTER_OUTPUT1Print);" << std::endl;
+	output << "//Policies" << std::endl;
+	output << "Idle -> ACCEPT :: Discard;" << std::endl;
 	output << "Idle -> REJECT :: Discard;" << std::endl;
 	output << "Idle -> DROP :: Discard;" << std::endl;
 	output << std::endl;
 
-	output << "//Simulation of the iptables" << std::endl;
-	_mangleTable->printClickTraceSimulation(output, "MANGLE_");
-	_natTable->printClickTraceSimulation(output, "NAT_");
-	_filterTable->printClickTraceSimulation(output, "FILTER_");
+	printTrafficSwitch(output, true);
+
+	output << "// Replay specific dump file" << std::endl;
+	output << "FromDump($FILENAME)" << std::endl;
+	output << "	-> MarkIPHeader(14)" << std::endl;
+	output << "	-> counter :: Counter" << std::endl;
+	output << "	-> Script(TYPE PACKET," << std::endl;
+	output << "		set packetnr $(counter.count)," << std::endl;
+	output << "		print \"\nPacket\" $packetnr)" << std::endl;
+	output << "	-> IPTABLES;" << std::endl;
 	output << std::endl;
 }

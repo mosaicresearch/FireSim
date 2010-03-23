@@ -43,7 +43,34 @@ void Chain::add(Rule* rule){
 
 void Chain::printClickClassifiers(std::ostream& ostream, std::string prefix){
 	for (int index = 0; index < _rules.size(); index++) {
-		ostream << "Idle -> ";
+//		if (index == 0) {
+//			if (prefix == "MANGLE_" || prefix == "FILTER_") {
+//				if (this->getName() == "FORWARD")
+//					ostream << "ps[0] -> ";
+//				else if (this->getName() == "INPUT")
+//					ostream << "ps[1] -> ";
+//				else if (this->getName() == "OUTPUT")
+//					ostream << "ps[2] -> ";
+//				else if (this->getName() == "POSTROUTING")
+//					ostream << "ps[3] -> ";
+//				else if (this->getName() == "PREROUTING")
+//					ostream << "ps[4] -> ";
+//				else
+//					ostream << "Idle -> ";
+//			} else if (prefix == "NAT_") {
+//				if (this->getName() == "OUTPUT")
+//					ostream << "ps[0] -> ";
+//				else if (this->getName() == "POSTROUTING")
+//					ostream << "ps[1] -> ";
+//				else if (this->getName() == "PREROUTING")
+//					ostream << "ps[2] -> ";
+//				else
+//					ostream << "Idle -> ";
+//			} else
+//				assert(false);
+//		} else
+			ostream << "Idle -> ";
+
 		if (!_rules[index]->hasCondition() || _rules[index]->ignore()){
 			ostream << prefix << this->getName() << (index + 1) << " :: IPClassifier(-);" << std::endl;
 		} else if (_rules[index]->needsIPClassifier() && _rules[index]->needsClassifier()) {
@@ -81,12 +108,10 @@ void Chain::printClickTraceSimulation(std::ostream& ostream, std::string prefix,
 		if (_rules[index]->ignore()) {
 			//this rule must be ignored ==> jump to next rule
 			ostream << prefix << this->getName() << (index + 1) << "[0]"
-					<< " -> Script(TYPE PACKET, write ACCEPT.from " << prefix << this->getName() << (index + 1) << postfix << ")"
 					<< " -> " << prefix << this->getName() << (index + 2) << postfix << ";" << std::endl;
 		} else if (!_rules[index]->hasCondition()){
 			//this rule has no conditions ==> jump to target
-			ostream << prefix << this->getName() << (index + 1) << "[0]"
-					<< " -> Script(TYPE PACKET, write ACCEPT.from " << prefix << this->getName() << (index + 1) << postfix << ")";
+			ostream << prefix << this->getName() << (index + 1) << "[0]";
 			if (target->getName() == "RETURN") {
 				ostream << " -> bt;" << std::endl;
 			} else if (target->getName() == "MASQUERADE") {
@@ -104,11 +129,9 @@ void Chain::printClickTraceSimulation(std::ostream& ostream, std::string prefix,
 		} else if (_rules[index]->needsIPClassifier() && _rules[index]->needsClassifier()) {
 			//this rule has conditions that must be simulated by an IPClassifier and a general Classifier
 			ostream << prefix << this->getName() << (index + 1) << "[0]"
-					<< " -> Script(TYPE PACKET, write ACCEPT.from " << prefix << this->getName() << (index + 1) << postfix << ")"
 					<< " -> " << prefix << this->getName() << (index + 1) << "B;" << std::endl;
 
 			ostream << prefix << this->getName() << (index + 1) << "[1]"
-					<< " -> Script(TYPE PACKET, write ACCEPT.from " << prefix << this->getName() << (index + 1) << postfix << ")"
 					<< " -> " << prefix << this->getName() << (index + 2) << postfix << ";" << std::endl;
 
 			ostream << prefix << this->getName() << (index + 1) << "B[0]";
@@ -130,8 +153,7 @@ void Chain::printClickTraceSimulation(std::ostream& ostream, std::string prefix,
 					<< " -> " << prefix << this->getName() << (index + 2) << postfix << ";" << std::endl;
 		} else if (_rules[index]->needsIPClassifier() || _rules[index]->needsClassifier()) {
 			//only 1 classifier is needed
-			ostream << prefix << this->getName() << (index + 1) << "[0]"
-					<< " -> Script(TYPE PACKET, write ACCEPT.from " << prefix << this->getName() << (index + 1) << postfix << ")";
+			ostream << prefix << this->getName() << (index + 1) << "[0]";
 			if (target->getName() == "RETURN") {
 				 ostream << " -> bt;" << std::endl;
 			} else if (target->getName() == "MASQUERADE") {
@@ -147,7 +169,6 @@ void Chain::printClickTraceSimulation(std::ostream& ostream, std::string prefix,
 						<< " -> " << prefix << target->getName() << "1" << postfix << ";" << std::endl;
 			}
 			ostream << prefix << this->getName() << (index + 1) << "[1]"
-					<< " -> Script(TYPE PACKET, write ACCEPT.from " << prefix << this->getName() << (index + 1) << postfix << ")"
 					<< " -> " << prefix << this->getName() << (index + 2)  << postfix << ";" << std::endl;
 		} else {
 			assert(false);
@@ -161,7 +182,6 @@ void Chain::printClickTraceSimulation(std::ostream& ostream, std::string prefix,
 		} else {
 			//jump to policy
 			ostream << prefix << this->getName() << "1[0]"
-					<< " ->  Script(TYPE PACKET, write ACCEPT.from " << prefix << this->getName() << "1" << postfix << ")"
 					<< " -> " << _policy << "; //Default policy" << std::endl;
 		}
 	} else if(nrOfRules > 0) {
@@ -171,7 +191,6 @@ void Chain::printClickTraceSimulation(std::ostream& ostream, std::string prefix,
 
 		if (rule->ignore()) {
 			ostream << prefix << this->getName() << _rules.size() << "[0]"
-					<< " -> Script(TYPE PACKET, write ACCEPT.from " << prefix << this->getName() << _rules.size() << postfix << ")"
 					<< " -> " << prefix << this->getName() << (_rules.size() + 1) << postfix << ";" << std::endl;
 			if (_policy==""){
 				//no policy set ==> backtracking needed
@@ -181,13 +200,11 @@ void Chain::printClickTraceSimulation(std::ostream& ostream, std::string prefix,
 				ostream << prefix << this->getName() << (_rules.size()) << "[0]"
 						<< " -> " << prefix << this->getName() << postfix << (_rules.size() + 1) << ";" << std::endl;
 				ostream << prefix << this->getName() << (_rules.size() + 1) << "[0]"
-						<< " -> Script(TYPE PACKET, write ACCEPT.from " << prefix << this->getName() << (_rules.size() + 1) << postfix << ")"
 						<< " -> " << _policy << "; //Default policy" << std::endl;
 			}
 		} else if (!rule->hasCondition()){
 			//this rule has no conditions ==> jump to target
-			ostream << prefix << this->getName() << _rules.size() << "[0]"
-					<< " -> Script(TYPE PACKET, write ACCEPT.from " << prefix << this->getName() << _rules.size() << postfix << ")";
+			ostream << prefix << this->getName() << _rules.size() << "[0]";
 			if (target->getName() == "RETURN") {
 				ostream << " -> bt;" << std::endl;
 			} else if (target->getName() == "MASQUERADE") {
@@ -208,18 +225,14 @@ void Chain::printClickTraceSimulation(std::ostream& ostream, std::string prefix,
 			} else {
 				//jump to policy
 				ostream << prefix << this->getName() << (_rules.size() + 1) << "[0]"
-						<< " ->  Script(TYPE PACKET, write ACCEPT.from " << prefix << this->getName() << (_rules.size() + 1) << postfix << ")"
 						<< " -> " << _policy << "; //Default policy" << std::endl;
 			}
 		} else if (rule->needsIPClassifier() && rule->needsClassifier()) {
 			ostream << prefix << this->getName() << _rules.size() << "[0]"
-					<< " -> Script(TYPE PACKET, write ACCEPT.from " << prefix << this->getName() << _rules.size() << postfix << ")"
 					<< " -> " << prefix << this->getName() << _rules.size() << "B;" << std::endl;
 			ostream << prefix << this->getName() << (_rules.size()) << "[1]"
-					<< " -> Script(TYPE PACKET, write ACCEPT.from " << prefix << this->getName() << _rules.size() << postfix << ")"
 					<< " -> " << prefix << this->getName() << (_rules.size() + 1) << postfix << ";" << std::endl;
-			ostream << prefix << this->getName() << _rules.size() << "B[0]"
-					<< " -> Script(TYPE PACKET, write ACCEPT.from " << prefix << this->getName() << _rules.size() << postfix << postfix << ")";
+			ostream << prefix << this->getName() << _rules.size() << "B[0]";
 			if (target->getName() == "RETURN") {
 				ostream << " -> bt;" << std::endl;
 			} else if (target->getName() == "MASQUERADE") {
@@ -236,8 +249,7 @@ void Chain::printClickTraceSimulation(std::ostream& ostream, std::string prefix,
 			}
 			ostream << prefix << this->getName() << (_rules.size()) << "B[1]"
 					<< " -> " << prefix << this->getName() << (_rules.size() + 1) << postfix << ";" << std::endl;
-			ostream << prefix << this->getName() << (_rules.size() + 1) << "[0]"
-					<< " ->  Script(TYPE PACKET, write ACCEPT.from " << prefix << this->getName() << (_rules.size() + 1) << postfix << ")";
+			ostream << prefix << this->getName() << (_rules.size() + 1) << "[0]";
 			if(_policy=="") {
 				//perform backtracking because no default policy is set
 				ostream << " -> bt;" << std::endl;
@@ -246,8 +258,7 @@ void Chain::printClickTraceSimulation(std::ostream& ostream, std::string prefix,
 				ostream << " -> " << _policy << "; //Default policy" << std::endl;
 			}
 		} else if (rule->needsIPClassifier() || rule->needsClassifier()) {
-			ostream << prefix << this->getName() << _rules.size() << "[0]"
-					<< " -> Script(TYPE PACKET, write ACCEPT.from " << prefix << this->getName() << _rules.size() << postfix << ")";
+			ostream << prefix << this->getName() << _rules.size() << "[0]";
 			if (target->getName() == "RETURN") {
 				ostream << " -> bt;" << std::endl;
 			} else if (target->getName() == "MASQUERADE") {
@@ -263,10 +274,8 @@ void Chain::printClickTraceSimulation(std::ostream& ostream, std::string prefix,
 						<< " -> " << prefix << target->getName() << "1" << postfix << ";" <<std::endl;
 			}
 			ostream << prefix << this->getName() << (_rules.size()) << "[1]"
-					<< " -> Script(TYPE PACKET, write ACCEPT.from " << prefix << this->getName() << _rules.size() << postfix << ")"
 					<< " -> " << prefix << this->getName() << (_rules.size() + 1) << postfix << ";" << std::endl;
-			ostream << prefix << this->getName() << (_rules.size() + 1) << "[0] "
-					<< " ->  Script(TYPE PACKET, write ACCEPT.from " << prefix << this->getName() << (_rules.size() + 1) << postfix << ")";
+			ostream << prefix << this->getName() << (_rules.size() + 1) << "[0]";
 			if (_policy=="") {
 				ostream << " -> bt;" << std::endl;
 			} else {
