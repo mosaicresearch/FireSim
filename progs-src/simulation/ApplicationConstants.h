@@ -18,8 +18,8 @@ const std::string SCRIPT_VARS_FILENAME = "script_vars.sh";
 //Output files
 const std::string OUTPUT_PATH = "output/";
 
-//Internal paths
-const std::string CLICK_SHELL_CMD = "libs/Click/userlevel/click";
+//temp file for statistics
+const std::string STATISTICS_FILENAME = std::string("statistics.txt");
 
 //Output click files
 const std::string SCRIPT_DIR = "clickscripts/";

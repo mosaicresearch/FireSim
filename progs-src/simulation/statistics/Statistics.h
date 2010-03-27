@@ -40,9 +40,9 @@ public:
 	void doTraces();
 
 private:
-	std::vector<std::pair<std::string,int> > _traceVector;
+	std::vector<std::string> _traceVector;
 	bool _isTestRun;
-	void askForTrace(std::string filename, int captured);
+	void askForTrace(std::string filename);
 };
 
 #endif /* STATISTICS_H_ */

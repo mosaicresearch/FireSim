@@ -6,26 +6,18 @@
 
 //Standard
 #include <string>
-#include <sstream>
+#include <fstream>
 #include <stdlib.h>
-#include <stdio.h>
 
 //Logger
 #include "Poco/Logger.h"
 
-//Threading
-#include "Poco/Thread.h"
-
 //FireSim
 #include "Statistics.h"
 #include "CommandHandler.h"
-#include "../StartClick.h"
 #include "../ApplicationConstants.h"
 #include "../util/Util.h"
 
-using std::cout;
-using std::endl;
-using std::string;
 using Poco::Logger;
 
 Statistics::Statistics(bool isTestRun){
@@ -36,9 +28,9 @@ Statistics::~Statistics(){
 
 }
 
-void Statistics::askForTrace(std::string filename, int captured) {
+void Statistics::askForTrace(std::string filename) {
 	if (_isTestRun) {
-		_traceVector.push_back(std::pair<std::string, int> (filename, captured));
+		_traceVector.push_back(filename);
 	} else {
 		Logger::get("ConsoleLogger").information("Do you want a trace for these packets? (y/n)");
 		std::cout << "> ";
@@ -50,133 +42,104 @@ void Statistics::askForTrace(std::string filename, int captured) {
 			if ((x != "y") && (x != "n") && (x != "Y") && (x != "N")
 					&& (x != "yes") && (x != "no")) {
 				Logger::get("ConsoleLogger").information("Wrong input. Do you want a trace for these packets? (y/n)");
+				std::cout << "> ";
 			} else {
 				break;
 			}
 		}
 		if((x == "y") || (x == "yes") || (x == "Y")){
 			//Add filename to pending traces
-			_traceVector.push_back(std::pair<std::string, int> (filename, captured));
+			_traceVector.push_back(filename);
 		}
 	}
 
 }
 
 void Statistics::doTraces() {
-	for (std::vector<std::pair<std::string,int> >::const_iterator it = _traceVector.begin() ; it < _traceVector.end(); it++) {
-		std::string clickReply = "";
-		do {
-			//first try to remove the .txt file because it may already exist from a previous run!
-			remove((it->first + ".txt").c_str());
+	for (std::vector<std::string>::const_iterator it = _traceVector.begin(); it < _traceVector.end(); it++) {
+		std::string shellCommand = "click " + SCRIPT_DIR + TRACE_SCRIPT + " FILENAME=" + OUTPUT_PATH + *it +
+			".dump >> " + OUTPUT_PATH + *it + ".txt";
 
-			Poco::Thread* thread = new Poco::Thread();
-			StartClick* trace = new StartClick(TRACE_SCRIPT, CLICK_PORT,
-					"FILENAME=" + OUTPUT_PATH + it->first + ".dump >> " + OUTPUT_PATH + it->first + ".txt 2>/dev/null");
-			thread->start(*trace);
+		if (system(shellCommand.c_str())) {
+			Logger::get("ConsoleLogger").fatal("shell command '" + shellCommand + "' has failed to execute. Aborting...");
+			exit(1);
+		}
 
-			CommandHandler cmdHandler("localhost", CLICK_PORT);
-			while(true) {
-				clickReply = cmdHandler.execute("read counter.count");
-				if (stringToInt(clickReply) == it->second) {
-					break;
-				}
-			}
-			delete(trace);
-			delete(thread);
-		} while (clickReply == "");
-
-
-		if (!_isTestRun)
-			Logger::get("ConsoleLogger").information("Finished tracing " + it->first + ".dump: see " + it->first + ".txt in output folder");
+		Logger::get("ConsoleLogger").information("Finished tracing " + *it + ".dump: see " + *it + ".txt in output folder");
 	}
 }
 
 void Statistics::getUserReport() {
-	CommandHandler cmdHandler("localhost", CLICK_PORT);
-
-	//how many packets are generated?
-	std::string clickReply = cmdHandler.execute("read inputCounter.count");
-	if (!_isTestRun)
-		Logger::get("ConsoleLogger").information("Total packets generated: " + clickReply);
-	int totalNrOfPackets = stringToInt(clickReply);
-
-	//how many packets are correctly accepted?
-	clickReply = cmdHandler.execute("read ACCEPT_true.count");
-	if (!_isTestRun)
-		Logger::get("ConsoleLogger").information("Total packets correctly accepted: " + clickReply);
-	int captured = stringToInt(clickReply);
-	totalNrOfPackets -= captured; //for computation of total lost packets.
-
-	//how many packets are incorrectly accepted?
-	clickReply = cmdHandler.execute("read ACCEPT_false.count");
-	captured = stringToInt(clickReply);
-	std::string report = "Total packets incorrectly accepted: " + clickReply;
-	if (captured > 0) {
-		report += " (see faulty_accept.dump in output folder)";
-		if (!_isTestRun)
-			Logger::get("ConsoleLogger").information(report);
-		askForTrace("faulty_accept", captured);
-	} else {
-		if (!_isTestRun)
-			Logger::get("ConsoleLogger").information(report);
-		removeFile("faulty_accept.dump", OUTPUT_PATH);
+	std::string shellCommand = "click " + SCRIPT_DIR + SIMULATION_SCRIPT;
+	if (system(shellCommand.c_str()) == -1) {
+		Logger::get("ConsoleLogger").fatal("shell command '" + shellCommand + "' has failed to execute. Aborting...");
+		exit(1);
 	}
 
-	totalNrOfPackets -= captured; //for computation of total lost packets.
+	int numLostPackets;
+	std::string line;
+	std::ifstream file(STATISTICS_FILENAME.c_str());
 
-	//how many packets are correctly rejected?
-	clickReply = cmdHandler.execute("read REJECT_true.count");
-	if (!_isTestRun)
-		Logger::get("ConsoleLogger").information("Total packets correctly rejected: " + clickReply);
-	captured = stringToInt(clickReply);
-	totalNrOfPackets -= captured; //for computation of total lost packets.
+	if (file.is_open()) {
+		getline(file, line);
+		numLostPackets = stringToInt(line);
+		Logger::get("ConsoleLogger").information("Total packets generated: " + line);
 
-	//how many packets are incorrectly rejected?
-	clickReply = cmdHandler.execute("read REJECT_false.count");
-	captured = stringToInt(clickReply);
-	report = "Total packets incorrectly rejected: " + clickReply;
-	if (captured > 0) {
-		report += " (see faulty_reject.dump in output folder)";
-		if (!_isTestRun)
+		getline(file, line);
+		numLostPackets -= stringToInt(line);
+		Logger::get("ConsoleLogger").information("Total packets correctly accepted: " + line);
+
+		getline(file, line);
+		numLostPackets -= stringToInt(line);
+		std::string report = "Total packets incorrectly accepted: " + line;
+		if (stringToInt(line) > 0) {
+			report += " (see faulty_accept.dump in output folder)";
 			Logger::get("ConsoleLogger").information(report);
-		askForTrace("faulty_reject", captured);
+			askForTrace("faulty_accept");
+		} else {
+			Logger::get("ConsoleLogger").information(report);
+			removeFile("faulty_accept.dump", OUTPUT_PATH);
+		}
+
+		getline(file, line);
+		numLostPackets -= stringToInt(line);
+		Logger::get("ConsoleLogger").information("Total packets correctly rejected: " + line);
+
+		getline(file, line);
+		numLostPackets -= stringToInt(line);
+		report = "Total packets incorrectly rejected: " + line;
+		if (stringToInt(line) > 0) {
+			report += " (see faulty_reject.dump in output folder)";
+			Logger::get("ConsoleLogger").information(report);
+			askForTrace("faulty_reject");
+		} else {
+			Logger::get("ConsoleLogger").information(report);
+			removeFile("faulty_reject.dump", OUTPUT_PATH);
+		}
+
+		getline(file, line);
+		numLostPackets -= stringToInt(line);
+		Logger::get("ConsoleLogger").information("Total packets correctly dropped: " + line);
+
+		getline(file, line);
+		numLostPackets -= stringToInt(line);
+		report = "Total packets incorrectly dropped: " + line;
+		if (stringToInt(line) > 0) {
+			report += " (see faulty_drop.dump in output folder)";
+			Logger::get("ConsoleLogger").information(report);
+			askForTrace("faulty_drop");
+		} else {
+			Logger::get("ConsoleLogger").information(report);
+			removeFile("faulty_drop.dump", OUTPUT_PATH);
+		}
+
+		if (numLostPackets > 0)
+			Logger::get("ConsoleLogger").warning("WARNING: " + intToString(numLostPackets) + " packets were lost.");
+
+		file.close();
+		removeFile(STATISTICS_FILENAME, "");
 	} else {
-		if (!_isTestRun)
-			Logger::get("ConsoleLogger").information(report);
-		removeFile("faulty_reject.dump", OUTPUT_PATH);
+		Logger::get("ConsoleLogger").fatal("Failed to open " + STATISTICS_FILENAME + "created by the click script " + SIMULATION_SCRIPT);
+		exit(1);
 	}
-	totalNrOfPackets -= captured; //for computation of total lost packets.
-
-	//how many packets are correctly dropped?
-	clickReply = cmdHandler.execute("read DROP_true.count");
-	if (!_isTestRun)
-		Logger::get("ConsoleLogger").information("Total packets correctly dropped: " + clickReply);
-	captured = stringToInt(clickReply);
-	totalNrOfPackets -= captured; //for computation of total lost packets.
-
-	//how many packets are incorrectly dropped?
-	clickReply = cmdHandler.execute("read DROP_false.count");
-	captured = stringToInt(clickReply);
-	report = "Total packets incorrectly dropped: " + clickReply;
-	if (captured > 0) {
-		report += " (see faulty_drop.dump in output folder)";
-		if (!_isTestRun)
-			Logger::get("ConsoleLogger").information(report);
-		askForTrace("faulty_drop", captured);
-	} else {
-		if (!_isTestRun)
-			Logger::get("ConsoleLogger").information(report);
-		removeFile("faulty_drop.dump", OUTPUT_PATH);
-	}
-	totalNrOfPackets -= captured; //for computation of total lost packets.
-
-	std::string lost = intToString(totalNrOfPackets);
-
-	//how many packets are lost?
-	if (_isTestRun) {
-		if (totalNrOfPackets > 0)
-			Logger::get("ConsoleLogger").information("WARNING: " + lost + " packets were lost.");
-	} else
-		Logger::get("ConsoleLogger").information("Total packets lost: " + lost);
-
 }

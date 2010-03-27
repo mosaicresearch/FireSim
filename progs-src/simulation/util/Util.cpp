@@ -5,7 +5,6 @@
  */
 
 //Standard
-#include <iostream>
 #include <algorithm>
 #include <sys/types.h>
 #include <dirent.h>
@@ -14,12 +13,12 @@
 //Poco
 #include "Poco/RegularExpression.h"
 #include "Poco/Exception.h"
+#include "Poco/Logger.h"
 
 //FireSim
 #include "Util.h"
 
-using std::cout;
-using std::endl;
+using Poco::Logger;
 
 int stringToInt(std::string str){
 	std::stringstream ss;
@@ -61,24 +60,24 @@ short decimalToHex(unsigned long decimal_value, char hex_value[8]) {
 	return significant_digits;
 }
 
-std::string itoa(int n) {
-	char * s = new char[17];
-	std::string u;
-	if (n < 0) { //turns n positive
-		n = (-1 * n);
-		u = "-"; //adds '-' on result string
-	}
-	int i = 0; //s counter
-	do {
-		s[i++] = n % 10 + '0'; //conversion of each digit of n to char
-		n -= n % 10; //update n value
-	} while ((n /= 10) > 0);
-	for (int j = i - 1; j >= 0; j--) {
-		u += s[j]; //building our string number
-	}
-	delete[] s; //free-up the memory!
-	return u;
-}
+//std::string itoa(int n) {
+//	char * s = new char[17];
+//	std::string u;
+//	if (n < 0) { //turns n positive
+//		n = (-1 * n);
+//		u = "-"; //adds '-' on result string
+//	}
+//	int i = 0; //s counter
+//	do {
+//		s[i++] = n % 10 + '0'; //conversion of each digit of n to char
+//		n -= n % 10; //update n value
+//	} while ((n /= 10) > 0);
+//	for (int j = i - 1; j >= 0; j--) {
+//		u += s[j]; //building our string number
+//	}
+//	delete[] s; //free-up the memory!
+//	return u;
+//}
 
 void printFireSimLogo(std::iostream& stream){
 	stream << std::endl << "##################################################" << std::endl;
@@ -113,33 +112,25 @@ void convertToLowerCase(std::string& str){
 
 void removeWhitespace(std::string& str){
 	try {
-//		Poco::RegularExpression regexFront(" ");
-//		regexFront.subst(str,"", Poco::RegularExpression::RE_GLOBAL);
 		Poco::RegularExpression regexFront("^( )");
 		regexFront.subst(str,"", Poco::RegularExpression::RE_GLOBAL);
 		Poco::RegularExpression regexBack(" *$");
 		regexBack.subst(str,"", Poco::RegularExpression::RE_GLOBAL);
 	} catch (Poco::RegularExpressionException e) {
-		std::cout << "Failure: " << e.message() << std::endl;
+		Logger::get("ConsoleLogger").fatal("Failure: " + e.message());
 		exit(1);
 	}
 }
 
 void removeFile(std::string file, std::string path) {
-	remove((path + file).c_str());
-//	if (remove((path + file).c_str()) == -1) {
-//		std::cout << "Remove of file " << file << " failed" << std::endl;
-//		exit(1);
-//	}
+	if (remove((path + file).c_str()) == -1) {
+		Logger::get("ConsoleLogger").warning("WARNING: removal of file " + path + file + " failed");
+	}
 }
 
 void removeFiles(std::vector<std::string> files, std::string path) {
 	for (std::vector<std::string>::iterator it = files.begin(); it != files.end(); ++it) {
-		remove((path + (*it)).c_str());
-//		if (remove((path + (*it)).c_str()) == -1) {
-//			std::cout << "Remove of file " << *it << " failed" << std::endl;
-//			exit(1);
-//		}
+		removeFile(*it, path);
 	}
 }
 

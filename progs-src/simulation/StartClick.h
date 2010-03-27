@@ -56,7 +56,7 @@ public:
 	virtual ~StartClick(){
 		//When this runnable is destructed, the click simulation must end.
 		if (system("pkill -SIGINT click")) {
-			Poco::Logger::get("ConsoleLogger").critical("StartClick: shell command 'pkill -SIGINT click' has failed to execute. Please check your configuration.");
+			Poco::Logger::get("ConsoleLogger").fatal("StartClick: shell command 'pkill -SIGINT click' has failed to execute. Please check your configuration.");
 		}
 	}
 
@@ -64,7 +64,7 @@ public:
 	 * Run click
 	 */
 	void run() {
-		std::string shellCommand = CLICK_SHELL_CMD;
+		std::string shellCommand = "click";
 		if (_port != 0) {
 			shellCommand += (" -p " + intToString(_port));
 		}
@@ -72,19 +72,9 @@ public:
 		if (_scriptParam != "") {
 			shellCommand += (" " + _scriptParam);
 		}
-		int triesLeft = 3;
-		while (triesLeft > 0) {
-			if (system(shellCommand.c_str())) {
-				if (--triesLeft == 0) {
-					Poco::Logger::get("ConsoleLogger").critical("StartClick: shell command '" + shellCommand + "' has failed to execute. Please check your configuration.");
-					if (system("pkill -SIGINT click")) {
-						Poco::Logger::get("ConsoleLogger").critical("StartClick: shell command 'pkill -SIGINT click' has failed to execute. Please check your configuration.");
-					}
-					exit(1);
-				}
-			} else {
-				break;
-			}
+		if (system(shellCommand.c_str())) {
+			Poco::Logger::get("ConsoleLogger").fatal("StartClick: shell command '" + shellCommand + "' has failed to execute. Please check your configuration.");
+			exit(1);
 		}
 	}
 

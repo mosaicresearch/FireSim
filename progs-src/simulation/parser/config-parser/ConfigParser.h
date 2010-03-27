@@ -41,8 +41,9 @@ public:
 
 	/**
 	 * Conversion from xml to content-object.
+	 * Returns the number of traffic nodes in the config file.
 	 */
-	void parse(Poco::XML::Document*  xmlNode, NetworkLayout* networkLayout);
+	int parse(Poco::XML::Document* xmlNode, NetworkLayout* networkLayout);
 
 	/**
 	 * Print click traffic blocks

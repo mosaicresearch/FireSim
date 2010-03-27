@@ -128,9 +128,9 @@ void NetworkLayout::printStartChainSwitch(std::ostream& ostream, std::string ele
 }
 
 void NetworkLayout::printMasqueradeSwitch(std::ostream& ostream) {
-	ostream << "//Masquerade handler" << std::endl;
+	ostream << "	//Masquerade handler" << std::endl;
 	std::map<std::string, std::string> mapping = this->getMacIPMappings();
-	ostream << "Idle -> masq :: Classifier(";
+	ostream << "	Idle -> masq :: Classifier(";
 	for(std::map<std::string, std::string>::iterator it = mapping.begin(); it != mapping.end();) {
 		if (it->second != "0.0.0.0") {
 			Poco::StringTokenizer macTokenizer(it->first, ":", Poco::StringTokenizer::TOK_IGNORE_EMPTY);
@@ -150,7 +150,7 @@ void NetworkLayout::printMasqueradeSwitch(std::ostream& ostream) {
 	int index = 0;
 	for(std::map<std::string, std::string>::iterator it = mapping.begin(); it != mapping.end(); it++) {
 		if (it->second != "0.0.0.0") {
-			ostream << "masq[" << index << "] -> IPAddrPairRewriter(pattern " << it->second << " - 0 0) -> bt;" << std::endl;
+			ostream << "	masq[" << index << "] -> IPAddrPairRewriter(pattern " << it->second << " - 0 0) -> bt;" << std::endl;
 			index++;
 		}
 	}

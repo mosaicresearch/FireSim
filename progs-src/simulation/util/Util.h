@@ -39,7 +39,7 @@ short decimalToHex(unsigned long decimal_value, char hex_value[8]);
  * @param integer value
  * @return the resulting string.
  */
-std::string itoa(int n);
+//std::string itoa(int n);
 
 /**
  * Print the Firesim-logo as an ascii-chart on the specified stream

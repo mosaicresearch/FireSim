@@ -215,7 +215,7 @@ std::vector<Condition*> ConditionFactory::parse(std::vector<std::string> conditi
 		nrOfParameters = _parameterMap[name];
 		std::vector<std::string> values;
 		for(int index = 1; index <= nrOfParameters; index++){
-			Poco::Logger::get("ConsoleLogger").debug("condition " + name + " value" + itoa(index) + " = " + *(it+index));
+			Poco::Logger::get("ConsoleLogger").debug("condition " + name + " value" + intToString(index) + " = " + *(it+index));
 			values.push_back(*(it+index));
 		}
 		Condition* cond = this->parseCondition(name, values, reverse);

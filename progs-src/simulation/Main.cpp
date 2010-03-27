@@ -61,14 +61,18 @@ int main(int argc, char *argv[]) {
 	splitter->addChannel(new ConsoleChannel);
 	pFCConsole->setChannel(splitter);
 	pFCConsole->open();
-	Logger::create("ConsoleLogger", pFCConsole, Message::PRIO_INFORMATION);
 
 	bool testRun;
+	int numRuns = 1;
 	if (argc == 2) {
 		testRun = false;
+		Logger::create("ConsoleLogger", pFCConsole, Message::PRIO_INFORMATION);
 	} else if (argc == 4 && std::string(argv[2]) == "-t") {
 		testRun = true;
+		numRuns = stringToInt(std::string(argv[3]));
+		Logger::create("ConsoleLogger", pFCConsole, Message::PRIO_WARNING);
 	} else {
+		Logger::create("ConsoleLogger", pFCConsole, Message::PRIO_INFORMATION);
 		Logger::get("ConsoleLogger").error("syntax: firewallsimulation config-dir [-t #runs]");
 		Logger::get("ConsoleLogger").error("The config-dir is a directory containing the 4 necessary input files: config.xml, network_layout.xml, script_vars.sh and shorewall.compiled");
 		Logger::get("ConsoleLogger").error("The -t option is used for throughput testing in combination with the 'time' command; non-error output is suppressed");
@@ -95,8 +99,7 @@ int main(int argc, char *argv[]) {
 	//shorewall.compiled
 	Poco::StringTokenizer shorewallCompiledTokenizer(config_path + SHOREWALLCOMPILED_FILENAME, "/", Poco::StringTokenizer::TOK_IGNORE_EMPTY);
 	if (checkFile(config_path + SHOREWALLCOMPILED_FILENAME)) {
-		if (!testRun)
-			Logger::get("ConsoleLogger").information(shorewallCompiledTokenizer[shorewallCompiledTokenizer.count()-1] + " is found in config folder.");
+		Logger::get("ConsoleLogger").information(shorewallCompiledTokenizer[shorewallCompiledTokenizer.count()-1] + " is found in config folder.");
 	} else {
 		Logger::get("ConsoleLogger").information(shorewallCompiledTokenizer[shorewallCompiledTokenizer.count()-1] + " is not found in config folder. Shorewall can generate this file.");
 		exit(1);
@@ -105,8 +108,7 @@ int main(int argc, char *argv[]) {
 	//config.xml
 	Poco::StringTokenizer configTokenizer(config_path + CONFIG_FILENAME, "/", Poco::StringTokenizer::TOK_IGNORE_EMPTY);
 	if (checkFile(config_path + CONFIG_FILENAME)) {
-		if (!testRun)
-			Logger::get("ConsoleLogger").information(configTokenizer[configTokenizer.count()-1] + " is found in config folder.");
+		Logger::get("ConsoleLogger").information(configTokenizer[configTokenizer.count()-1] + " is found in config folder.");
 	} else {
 		Logger::get("ConsoleLogger").information(configTokenizer[configTokenizer.count()-1] + " is not found in config folder. See README.txt for more info.");
 		exit(1);
@@ -115,8 +117,7 @@ int main(int argc, char *argv[]) {
 	//network_layout.xml
 	Poco::StringTokenizer networkLayoutTokenizer(config_path + NETWORKLAYOUT_FILENAME, "/", Poco::StringTokenizer::TOK_IGNORE_EMPTY);
 	if (checkFile(config_path + NETWORKLAYOUT_FILENAME)) {
-		if (!testRun)
-			Logger::get("ConsoleLogger").information(networkLayoutTokenizer[networkLayoutTokenizer.count()-1] + " is found in config folder.");
+		Logger::get("ConsoleLogger").information(networkLayoutTokenizer[networkLayoutTokenizer.count()-1] + " is found in config folder.");
 	} else {
 		Logger::get("ConsoleLogger").information(networkLayoutTokenizer[networkLayoutTokenizer.count()-1] + " is not found in config folder. Run [$config]/firewall_config_extract.sh on your firewall. It will generate " + networkLayoutTokenizer[networkLayoutTokenizer.count()-1]);
 		exit(1);
@@ -125,10 +126,8 @@ int main(int argc, char *argv[]) {
 	//script_vars.sh
 	Poco::StringTokenizer scriptVarsTokenizer(config_path + SCRIPT_VARS_FILENAME, "/", Poco::StringTokenizer::TOK_IGNORE_EMPTY);
 	if (checkFile(config_path + SCRIPT_VARS_FILENAME)) {
-		if (!testRun) {
-			Logger::get("ConsoleLogger").information(scriptVarsTokenizer[scriptVarsTokenizer.count()-1] + " is found in config folder.");
-			Logger::get("ConsoleLogger").information("");
-		}
+		Logger::get("ConsoleLogger").information(scriptVarsTokenizer[scriptVarsTokenizer.count()-1] + " is found in config folder.");
+		Logger::get("ConsoleLogger").information("");
 	} else {
 		Logger::get("ConsoleLogger").information(scriptVarsTokenizer[scriptVarsTokenizer.count()-1] + " is not found in config folder. Run [$config]/firewall_config_extract.sh on your firewall. It will generate " + scriptVarsTokenizer[scriptVarsTokenizer.count()-1]);
 		exit(1);
@@ -147,29 +146,12 @@ int main(int argc, char *argv[]) {
 	clickGenerator.generateTraces(clickTraceScript);
 	clickTraceScript.close();
 
-	int numRuns = 1;
-	if (testRun)
-		numRuns = stringToInt(std::string(argv[3]));
-
 	for (int i = 1; i <= numRuns; i++) {
-		//Start simulation
-		if (!testRun) {
-			Logger::get("ConsoleLogger").information("Simulate firewall with CLICK.");
-			Logger::get("ConsoleLogger").information("");
-		}
-		Poco::Thread* thread = new Poco::Thread();
-		StartClick* clickSimulation = new StartClick(SIMULATION_SCRIPT, CLICK_PORT, " 1>/dev/null 2>/dev/null");
-		thread->start(*clickSimulation);
+		Logger::get("ConsoleLogger").information("Simulate firewall with CLICK.");
 
 		//Feedback to the user
 		Statistics stats = Statistics(testRun);
 		stats.getUserReport();
-
-		//Stop simulation
-		delete(clickSimulation);
-		delete(thread);
-
-		//Do the traces the user requested
 		stats.doTraces();
 	}
 }

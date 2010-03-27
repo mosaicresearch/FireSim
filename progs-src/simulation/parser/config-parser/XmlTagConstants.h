@@ -34,6 +34,7 @@ struct XMLConstants {
 	static const std::string OUT_INTERFACE_TAG;
 	static const std::string DUMP_TAG;
 	static const std::string ASCII_DUMP_TAG;
+	static const std::string NUM_PACKETS;
 };
 
 #endif /* XMLTAGCONSTANTS_H_ */

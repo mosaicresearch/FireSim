@@ -50,7 +50,7 @@ ConfigParser* ConfigParser::getInstance() {
 	return fInstance;
 }
 
-void ConfigParser::parse(Poco::XML::Document* xmlDocument, NetworkLayout* networkLayout) {
+int ConfigParser::parse(Poco::XML::Document* xmlDocument, NetworkLayout* networkLayout) {
 	Node* configNode = xmlDocument->firstChild();
 	if(!configNode || (configNode->nodeName()!=XMLConstants::CONFIG_TAG)){
 		std::cout << "config.xml: No element with name " << XMLConstants::CONFIG_TAG << " at the appropiate place." << std::endl;
@@ -62,9 +62,13 @@ void ConfigParser::parse(Poco::XML::Document* xmlDocument, NetworkLayout* networ
 		exit(1);
 	}
 
+	int numTrafficNodes = 0;
+
 	//For each traffic block
 	while (trafficNode != 0) {
 		ConfigContent* content = new ConfigContent();
+
+		numTrafficNodes++;
 
 		//initialize non-mandatory content
 		content->tcp_flags = std::vector<Flags>();
@@ -76,6 +80,7 @@ void ConfigParser::parse(Poco::XML::Document* xmlDocument, NetworkLayout* networ
 		content->sourceIP = IPAddress();
 		content->inInterface = "";
 		content->outInterface = "";
+		content->numPackets = 1;
 
 		Node* elementNode = trafficNode->firstChild();
 		while (elementNode != 0){
@@ -93,7 +98,8 @@ void ConfigParser::parse(Poco::XML::Document* xmlDocument, NetworkLayout* networ
 					&& (elementNode->nodeName()!=XMLConstants::IN_INTERFACE_TAG)
 					&& (elementNode->nodeName()!=XMLConstants::OUT_INTERFACE_TAG)
 					&& (elementNode->nodeName()!=XMLConstants::DUMP_TAG)
-					&& (elementNode->nodeName()!=XMLConstants::ASCII_DUMP_TAG)){
+					&& (elementNode->nodeName()!=XMLConstants::ASCII_DUMP_TAG)
+					&& (elementNode->nodeName()!=XMLConstants::NUM_PACKETS)){
 				std::cout << "config.xml: XML element " << elementNode->nodeName() << " is not supported." << std::endl;
 				exit(1);
 			}
@@ -245,6 +251,8 @@ void ConfigParser::parse(Poco::XML::Document* xmlDocument, NetworkLayout* networ
 					exit(1);
 				}
 				content->dumpPath = std::pair<std::string, bool>(path, true);
+			} else if (elementNode->nodeName() ==  XMLConstants::NUM_PACKETS) {
+				content->numPackets = atoi(textNode->nodeValue().c_str());
 			}
 			elementNode = elementNode->nextSibling();
 		}
@@ -338,6 +346,8 @@ void ConfigParser::parse(Poco::XML::Document* xmlDocument, NetworkLayout* networ
 
 		trafficNode = trafficNode->nextSibling();
 	}
+
+	return numTrafficNodes;
 }
 
 void ConfigParser::printClickTraffic(std::ostream& ostream, NetworkLayout* networkLayout){
@@ -345,7 +355,7 @@ void ConfigParser::printClickTraffic(std::ostream& ostream, NetworkLayout* netwo
 	for(std::vector<ConfigContent*>::iterator it = _content.begin(); it != _content.end(); it++){
 		ostream << "//Traffic Block" << std::endl;
 		if ((*it)->dumpPath.first != "") {
-			ostream << ((*it)->dumpPath.second?"FromIPSummaryDump":"FromDump") << "(\"" << (*it)->dumpPath.first << "\")";
+			ostream << ((*it)->dumpPath.second?"FromIPSummaryDump":"FromDump") << "(\"" << (*it)->dumpPath.first << "\", STOP true)";
 			ostream << "	-> EnsureEther(0x0800, " << networkLayout->getMacAddress((*it)->outInterface) << ", "
 					<< networkLayout->getMacAddress((*it)->inInterface) << ")" << std::endl;
 			ostream << "	-> Paint(COLOR " << (*it)->policy << ")" << std::endl;
@@ -359,15 +369,15 @@ void ConfigParser::printClickTraffic(std::ostream& ostream, NetworkLayout* netwo
 				counter++;
 				ostream << "Script(write tcp" << counter << ".send " << (*it)->sourceIP.toString() << " "
 								<< (*it)->sourcePort << " " << (*it)->destIP.toString() << " " << (*it)->destPort
-								<< " 0 0 " << flags << ");" << std::endl;
+								<< " 0 0 " << flags << " " << (*it)->numPackets << " true);" << std::endl;
 				ostream << "tcp" << counter << " :: TCPIPSend" << std::endl;
 			} else if ((*it)->protocol == UDP) {
-				ostream << "InfiniteSource(LIMIT 1)" << std::endl;
+				ostream << "InfiniteSource(LIMIT " << (*it)->numPackets << ", STOP true)" << std::endl;
 				ostream	<< "	-> UDPIPEncap(" << (*it)->sourceIP.toString() << ", " << (*it)->sourcePort
 					<< ", " << (*it)->destIP.toString() << ", " << (*it)->destPort << ")" << std::endl;
 
 			} else if ((*it)->protocol == ICMP) {
-				ostream << "InfiniteSource(LIMIT 1)" << std::endl;
+				ostream << "InfiniteSource(LIMIT " << (*it)->numPackets << ", STOP true)" << std::endl;
 				ostream << "	-> ICMPIPEncap(" << (*it)->sourceIP.toString() << ", " << (*it)->destIP.toString()
 					<< ", " << (*it)->icmp_type;
 				if ((*it)->icmp_code != -1) {

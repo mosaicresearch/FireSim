@@ -42,7 +42,7 @@ RuleParser* RuleParser::getInstance() {
 void RuleParser::parse(std::string rules, Table* table, NetworkLayout* networkLayout){
 	//Tokenize rules
 	Poco::StringTokenizer rulesTokenizer(rules, "\n", Poco::StringTokenizer::TOK_IGNORE_EMPTY);
-	Poco::Logger::get("ConsoleLogger").debug("nr of rules recognized = " + itoa(rulesTokenizer.count()));
+	Poco::Logger::get("ConsoleLogger").debug("nr of rules recognized = " + intToString(rulesTokenizer.count()));
 	for(Poco::StringTokenizer::Iterator it = rulesTokenizer.begin(); it != rulesTokenizer.end(); it++){
 		std::string ruleString = *it;
 		if ((*it)[it->size()-1]=='\r'){
@@ -54,7 +54,7 @@ void RuleParser::parse(std::string rules, Table* table, NetworkLayout* networkLa
 		int nrOfTokens = paramTokenizer.count();
 
 		ConditionFactory* fact = ConditionFactory::getInstance(networkLayout);
-		Poco::Logger::get("ConsoleLogger").debug("=> nr of params recognized = " + itoa(nrOfTokens -4));
+		Poco::Logger::get("ConsoleLogger").debug("=> nr of params recognized = " + intToString(nrOfTokens-4));
 		//ignore first 2 tokens (equals -A and chain name) and the last 2 (equals -j chain name)
 		std::vector<std::string> conditionList;
 		bool jumpFound = false;
@@ -67,7 +67,6 @@ void RuleParser::parse(std::string rules, Table* table, NetworkLayout* networkLa
 				//jump clause found
 				jumpFound = true;
 				target = table->get(paramTokenizer[i+1]);
-				//TODO masquerade
 				if ((paramTokenizer[i+1] == "DNAT") || (paramTokenizer[i+1] == "SNAT")) {
 					natNeeded = true;
 					std::string nat = paramTokenizer[i+3];
@@ -83,22 +82,13 @@ void RuleParser::parse(std::string rules, Table* table, NetworkLayout* networkLa
 			}
 			conditionList.push_back(paramTokenizer[i]);
 
-//			Poco::Logger::get("ConsoleLogger").debug("rule condition constructed: " + paramTokenizer[i] + " and " + paramTokenizer[i+1]);
-//			Condition*  cond = fact->parse(paramTokenizer[i], paramTokenizer[i+1]);
-//			if (cond) {
-//				conditions.push_back(cond);
-//			}
+			Poco::Logger::get("ConsoleLogger").debug("rule condition constructed: " + paramTokenizer[i] + " and " + paramTokenizer[i+1]);
 		}
 		assert(jumpFound); //rule is not complete without a jump clause.
 
 		std::vector<Condition*> conditions = fact->parse(conditionList);
 
-//		cout << "All conditions for this rule processed"<<endl;
-//
-//		//Construct the rule with all parsed conditions
-//		if (!target->isFinal()){
-//			std::cout << "Target Chain " << target->getName() << " is not final!"<<std::endl;
-//		}
+		//Construct the rule with all parsed conditions
 		Rule* rule;
 		if (natNeeded) {
 			rule = new Rule(ruleString, conditions, target, natIP, natPort);

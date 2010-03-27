@@ -88,6 +88,7 @@ struct ConfigContent {
 	std::vector<Flags> tcp_flags;
 	short icmp_type;
 	short icmp_code;
+	int numPackets;
 	Policy policy;
 	std::string inInterface;
 	std::string outInterface;
