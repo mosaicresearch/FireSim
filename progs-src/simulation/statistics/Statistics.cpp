@@ -14,7 +14,6 @@
 
 //FireSim
 #include "Statistics.h"
-#include "CommandHandler.h"
 #include "../ApplicationConstants.h"
 #include "../util/Util.h"
 

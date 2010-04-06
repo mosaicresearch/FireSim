@@ -16,7 +16,7 @@ parser/config-parser/ConfigParser.cpp parser/config-parser/XmlTagConstants.cpp \
 parser/config-parser/PolicyFactory.cpp parser/config-parser/ProtocolFactory.cpp \
 parser/network-parser/NetworkParser.cpp parser/network-parser/XmlTagConstants.cpp \
 parser/network-parser/NetworkLayout.cpp \
-statistics/Statistics.cpp statistics/CommandHandler.cpp \
+statistics/Statistics.cpp \
 util/Util.cpp \
 
 ####################################################################

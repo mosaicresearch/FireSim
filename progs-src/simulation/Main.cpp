@@ -25,7 +25,6 @@
 #include "Poco/StringTokenizer.h"
 
 //FireSim
-#include "StartClick.h"
 #include "ApplicationConstants.h"
 #include "statistics/Statistics.h"
 #include "clickgenerator/ClickGenerator.h"
