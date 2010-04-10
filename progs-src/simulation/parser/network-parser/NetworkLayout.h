@@ -77,6 +77,14 @@ public:
 	bool isInput(std::string dstIP);
 
 	/**
+	 * Print click traffic type classifier
+	 * @param ostream This is the output stream. The traffic type classifier will be printed to this stream.
+	 * @param elementName This is the name of the click classifier element.
+	 * @param src True if classifying on source, false if classifying on destination.
+	 */
+	void printTrafficTypeClassifier(std::ostream& ostream, std::string elementName, bool src);
+
+	/**
 	 * Print click startchain switch
 	 * @param ostream This is the output stream. The startchain switch will be printed to this stream.
 	 * @param elementName This is the name of the click switch element.

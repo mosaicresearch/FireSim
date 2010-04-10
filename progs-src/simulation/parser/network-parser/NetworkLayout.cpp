@@ -88,6 +88,18 @@ bool NetworkLayout::isInput(std::string dstIP){
 	return find(dstIP);
 }
 
+void NetworkLayout::printTrafficTypeClassifier(std::ostream& ostream, std::string elementName, bool src){
+	// Internal Traffic
+	ostream << elementName << " :: IPClassifier(" << (src?"src ":"dst ");
+	for(std::map<std::string, NetworkContent*>::iterator it = _content.begin(); it != _content.end();){
+		ostream << it->second->ip_address.toString() << "/32";
+		if ((++it) != _content.end()) {
+			ostream << " or ";
+		}
+	}
+	ostream << ", -);" << std::endl;
+}
+
 void NetworkLayout::printStartChainSwitch(std::ostream& ostream, std::string elementName){
 	// Internal Traffic
 	ostream << elementName << " :: IPClassifier(" << std::endl << "	(dst ";
@@ -105,7 +117,7 @@ void NetworkLayout::printStartChainSwitch(std::ostream& ostream, std::string ele
 		}
 	}
 
-	//ostream classification
+	//Output classification
 	ostream << "), " << std::endl << "	src ";
 	for(std::map<std::string, NetworkContent*>::iterator it = _content.begin(); it != _content.end();){
 		ostream << it->second->ip_address.toString() << "/32";

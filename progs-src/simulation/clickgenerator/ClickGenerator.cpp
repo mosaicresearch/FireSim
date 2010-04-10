@@ -135,18 +135,8 @@ void ClickGenerator::printTables(std::ostream& output, bool trace) {
 void ClickGenerator::printTrafficTypes(std::ostream& output, bool trace) {
 	output << "elementclass ForwardTraffic {" << std::endl;
 	output << "	input[0]"
-		<< (trace?" -> Script(TYPE PACKET, print \"Entering the Prerouting chain of the Mangle table.\")":"")
-		<< " -> Paint(ANNO 19, COLOR 4) -> mangle_prerouting :: MangleTable;" << std::endl;
-	output << "	mangle_prerouting[0]"
-		<< (trace?" -> Script(TYPE PACKET, print \"Entering the Prerouting chain of the Nat table.\")":"")
-		<< "-> Paint(ANNO 19, COLOR 2) -> nat_prerouting :: NatTable;" << std::endl;
-	output << "	mangle_prerouting[1] -> [1]output;" << std::endl;
-	output << "	mangle_prerouting[2] -> [2]output;" << std::endl;
-	output << "	nat_prerouting[0]"
 		<< (trace?" -> Script(TYPE PACKET, print \"Entering the Forward chain of the Mangle table.\")":"")
 		<< "-> Paint(ANNO 19, COLOR 0) -> mangle_forward :: MangleTable;" << std::endl;
-	output << "	nat_prerouting[1] -> [1]output;" << std::endl;
-	output << "	nat_prerouting[2] -> [2]output;" << std::endl;
 	output << "	mangle_forward[0]"
 		<< (trace?" -> Script(TYPE PACKET, print \"Entering the Forward chain of the Filter table.\")":"")
 		<< "-> Paint(ANNO 19, COLOR 0) -> filter_forward :: FilterTable;" << std::endl;
@@ -170,18 +160,8 @@ void ClickGenerator::printTrafficTypes(std::ostream& output, bool trace) {
 
 	output << "elementclass InputTraffic {" << std::endl;
 	output << "	input[0]"
-		<< (trace?" -> Script(TYPE PACKET, print \"Entering the Prerouting chain of the Mangle table.\")":"")
-		<< "-> Paint(ANNO 19, COLOR 4) -> mangle_prerouting :: MangleTable;" << std::endl;
-	output << "	mangle_prerouting[0]"
-		<< (trace?" -> Script(TYPE PACKET, print \"Entering the Prerouting chain of the Nat table.\")":"")
-		<< "-> Paint(ANNO 19, COLOR 2) -> nat_prerouting :: NatTable;" << std::endl;
-	output << "	mangle_prerouting[1] -> [1]output;" << std::endl;
-	output << "	mangle_prerouting[2] -> [2]output;" << std::endl;
-	output << "	nat_prerouting[0]"
 		<< (trace?" -> Script(TYPE PACKET, print \"Entering the Input chain of the Mangle table.\")":"")
 		<< "-> Paint(ANNO 19, COLOR 1) -> mangle_input :: MangleTable;" << std::endl;
-	output << "	nat_prerouting[1] -> [1]output;" << std::endl;
-	output << "	nat_prerouting[2] -> [2]output;" << std::endl;
 	output << "	mangle_input[0]"
 		<< (trace?" -> Script(TYPE PACKET, print \"Entering the Input chain of the Filter table.\")":"")
 		<< "-> Paint(ANNO 19, COLOR 1) -> filter_input :: FilterTable;" << std::endl;
@@ -223,57 +203,70 @@ void ClickGenerator::printTrafficTypes(std::ostream& output, bool trace) {
 	output << "}" << std::endl;
 	output << std::endl;
 
-	output << "elementclass InternalTraffic {" << std::endl;
-	output << "	input[0]"
-		<< (trace?" -> Script(TYPE PACKET, print \"Following the OUTPUT traffic chains.\")":"")
-		<< " -> out :: OutputTraffic;" << std::endl;
-	output << "	out[0]"
+	output << "elementclass ArrivingTraffic {" << std::endl;
+	output << "input[0]"
+		<< (trace?" -> Script(TYPE PACKET, print \"Entering the Prerouting chain of the Mangle table.\")":"")
+		<< " -> Paint(ANNO 19, COLOR 4) -> mangle_prerouting :: MangleTable;" << std::endl;
+	output << "	mangle_prerouting[0]"
+		<< (trace?" -> Script(TYPE PACKET, print \"Entering the Prerouting chain of the Nat table.\")":"")
+		<< "-> Paint(ANNO 19, COLOR 2) -> nat_prerouting :: NatTable;" << std::endl;
+	output << "	mangle_prerouting[1] -> [1]output;" << std::endl;
+	output << "	mangle_prerouting[2] -> [2]output;" << std::endl;
+	output << "	nat_prerouting[0] -> ";
+	_networkLayout->printTrafficTypeClassifier(output, "in_or_fwd", false);
+	output << "	nat_prerouting[1] -> [1]output;" << std::endl;
+	output << "	nat_prerouting[2] -> [2]output;" << std::endl;
+	output << "	in_or_fwd[0]"
 		<< (trace?" -> Script(TYPE PACKET, print \"Following the INPUT traffic chains.\")":"")
 		<< " -> in :: InputTraffic;" << std::endl;
-	output << "	out[1] -> [1]output;" << std::endl;
-	output << "	out[2] -> [2]output;" << std::endl;
+	output << "	in_or_fwd[1]"
+		<< (trace?" -> Script(TYPE PACKET, print \"Following the FORWARD traffic chains.\")":"")
+		<< " -> fwd :: ForwardTraffic;" << std::endl;
 	output << "	in[0] -> [0]output;" << std::endl;
 	output << "	in[1] -> [1]output;" << std::endl;
 	output << "	in[2] -> [2]output;" << std::endl;
+	output << "	fwd[0] -> [0]output;" << std::endl;
+	output << "	fwd[1] -> [1]output;" << std::endl;
+	output << "	fwd[2] -> [2]output;" << std::endl;
+	output << "}" << std::endl;
+	output << std::endl;
+
+	output << "elementclass OutgoingTraffic {" << std::endl;
+	output << "input[0]"
+		<< (trace?" -> Script(TYPE PACKET, print \"Following the OUTPUT traffic chains.\")":"")
+		<< " -> out :: OutputTraffic;" << std::endl;
+	output << "out[0] -> ";
+	_networkLayout->printTrafficTypeClassifier(output, "local_or_out", false);
+	output << "out[1] -> [1]output;" << std::endl;
+	output << "out[2] -> [2]output;" << std::endl;
+	output << "local_or_out[0] -> arriving :: ArrivingTraffic;" << std::endl;
+	output << "local_or_out[1] -> [0]output;" << std::endl;
+	output << "arriving[0] -> [0]output;" << std::endl;
+	output << "arriving[1] -> [1]output;" << std::endl;
+	output << "arriving[2] -> [2]output;" << std::endl;
 	output << "}" << std::endl;
 	output << std::endl;
 }
 
 void ClickGenerator::printTrafficSwitch(std::ostream& output, bool trace) {
-	output << "//Iptables traffic type switch" << std::endl;
-	_networkLayout->printStartChainSwitch(output, "IPTABLES");
+	output << "//Traffic type check" << std::endl;
+	_networkLayout->printTrafficTypeClassifier(output, "trafficType", true);
 	output << std::endl;
-	output << "//Internal traffic" << std::endl;
-	output << "IPTABLES[0]"
-		<< (trace?" -> Script(TYPE PACKET, print \"This packet is classified as INTERNAL traffic.\")":"")
-		<< " -> internalTraffic :: InternalTraffic;" << std::endl;
-	output << "internalTraffic[0] -> ACCEPT;" << std::endl;
-	output << "internalTraffic[1] -> REJECT;" << std::endl;
-	output << "internalTraffic[2] -> DROP;" << std::endl;
+	output << "//Output or \"local\" traffic" << std::endl;
+	output << "trafficType[0]"
+		<< (trace?" -> Script(TYPE PACKET, print \"This packet is classified as outgoing traffic (OUTPUT or \"local\".\")":"")
+		<< " -> outgoing :: OutgoingTraffic;" << std::endl;
+	output << "outgoing[0] -> ACCEPT;" << std::endl;
+	output << "outgoing[1] -> REJECT;" << std::endl;
+	output << "outgoing[2] -> DROP;" << std::endl;
 	output << std::endl;
-	output << "//Output traffic" << std::endl;
-	output << "IPTABLES[1]"
-		<< (trace?" -> Script(TYPE PACKET, print \"This packet is classified as OUTPUT traffic.\")":"")
-		<< " -> outputTraffic :: OutputTraffic;" << std::endl;
-	output << "outputTraffic[0] -> ACCEPT;" << std::endl;
-	output << "outputTraffic[1] -> REJECT;" << std::endl;
-	output << "outputTraffic[2] -> DROP;" << std::endl;
-	output << std::endl;
-	output << "//Input traffic" << std::endl;
-	output << "IPTABLES[2]"
-		<< (trace?" -> Script(TYPE PACKET, print \"This packet is classified as INPUT traffic.\")":"")
-		<< " -> inputTraffic :: InputTraffic;" << std::endl;
-	output << "inputTraffic[0] -> ACCEPT;" << std::endl;
-	output << "inputTraffic[1] -> REJECT;" << std::endl;
-	output << "inputTraffic[2] -> DROP;" << std::endl;
-	output << std::endl;
-	output << "//Forward traffic" << std::endl;
-	output << "IPTABLES[3]"
-		<< (trace?" -> Script(TYPE PACKET, print \"This packet is classified as FORWARD traffic.\")":"")
-		<< " -> forwardTraffic :: ForwardTraffic;" << std::endl;
-	output << "forwardTraffic[0] -> ACCEPT;" << std::endl;
-	output << "forwardTraffic[1] -> REJECT;" << std::endl;
-	output << "forwardTraffic[2] -> DROP;" << std::endl;
+	output << "//Input or forward traffic" << std::endl;
+	output << "trafficType[1]"
+		<< (trace?" -> Script(TYPE PACKET, print \"This packet is classified as arriving traffic (INPUT or FORWARD).\")":"")
+		<< " -> arriving :: ArrivingTraffic;" << std::endl;
+	output << "arriving[0] -> ACCEPT;" << std::endl;
+	output << "arriving[1] -> REJECT;" << std::endl;
+	output << "arriving[2] -> DROP;" << std::endl;
 	output << std::endl;
 }
 
@@ -318,20 +311,21 @@ void ClickGenerator::generateSimulation(std::ostream& output, std::string config
 
 	output << "//Wait for all traffic to end, then collect statistics and shut down" << std::endl;
 	output << "DriverManager(";
-	for (int i = 0; i < numTrafficBlocks; i++) {
+	for (int i = 1; i <= numTrafficBlocks; i++) {
 		output << "pause, ";
 		if (i % 5 == 0)
 			output << std::endl << "\t";
 	}
 	output << std::endl;
-	output << "print >" << STATISTICS_FILENAME << " inputCounter.count," << std::endl;
-	output << "print >>" << STATISTICS_FILENAME << " ACCEPT_true.count," << std::endl;
-	output << "print >>" << STATISTICS_FILENAME << " ACCEPT_false.count," << std::endl;
-	output << "print >>" << STATISTICS_FILENAME << " REJECT_true.count," << std::endl;
-	output << "print >>" << STATISTICS_FILENAME << " REJECT_false.count," << std::endl;
-	output << "print >>" << STATISTICS_FILENAME << " DROP_true.count," << std::endl;
-	output << "print >>" << STATISTICS_FILENAME << " DROP_false.count," << std::endl;
-	output << "stop);" << std::endl;
+	output << "	print >" << STATISTICS_FILENAME << " inputCounter.count," << std::endl;
+	output << "	print >>" << STATISTICS_FILENAME << " ACCEPT_true.count," << std::endl;
+	output << "	print >>" << STATISTICS_FILENAME << " ACCEPT_false.count," << std::endl;
+	output << "	print >>" << STATISTICS_FILENAME << " REJECT_true.count," << std::endl;
+	output << "	print >>" << STATISTICS_FILENAME << " REJECT_false.count," << std::endl;
+	output << "	print >>" << STATISTICS_FILENAME << " DROP_true.count," << std::endl;
+	output << "	print >>" << STATISTICS_FILENAME << " DROP_false.count," << std::endl;
+	output << "	stop);" << std::endl;
+	output << std::endl;
 
 	printTables(output, false);
 
@@ -346,7 +340,7 @@ void ClickGenerator::generateSimulation(std::ostream& output, std::string config
 	printTrafficSwitch(output, false);
 
 	output << "//Counters for statistics" << std::endl;
-	output << "inputCounter :: Counter -> IPTABLES;" << std::endl;
+	output << "inputCounter :: Counter -> trafficType;" << std::endl;
 	output << "ACCEPT_true :: Counter;" << std::endl;
 	output << "ACCEPT_false :: Counter;" << std::endl;
 	output << "REJECT_true :: Counter;" << std::endl;
@@ -415,6 +409,6 @@ void ClickGenerator::generateTraces(std::ostream& output) {
 	output << "	-> Script(TYPE PACKET," << std::endl;
 	output << "		set packetnr $(counter.count)," << std::endl;
 	output << "		print \"\nPacket\" $packetnr)" << std::endl;
-	output << "	-> IPTABLES;" << std::endl;
+	output << "	-> trafficType;" << std::endl;
 	output << std::endl;
 }

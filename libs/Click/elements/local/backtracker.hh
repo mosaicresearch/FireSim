@@ -1,7 +1,6 @@
 #ifndef CLICK_BACKTRACKER_HH
 #define CLICK_BACKTRACKER_HH
 #include <click/element.hh>
-#include <vector>
 CLICK_DECLS
 
 class Backtracker : public Element { public:
