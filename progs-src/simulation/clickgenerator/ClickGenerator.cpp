@@ -17,24 +17,64 @@
 //FireSim
 #include "ClickGenerator.h"
 #include "../parser/shorewall-parser/ShorewallParser.h"
-#include "../parser/config-parser/ConfigParser.h"
 #include "../parser/network-parser/NetworkParser.h"
 #include "../ApplicationConstants.h"
 
-ClickGenerator::ClickGenerator() {
+ClickGenerator::ClickGenerator(std::string config_path, bool isTestRun) {
 	_filterTable = 0;
 	_natTable = 0;
 	_mangleTable = 0;
 	_networkLayout = 0;
+	_configParser = 0;
+
+	std::string config_path2 = config_path;
+	if (isTestRun)
+		config_path2 += "../";
+
+	Poco::XML::DOMParser DOMparser;
+
+	//Parse network layout
+	try {
+		//Skip whitespace
+		DOMparser.setFeature("http://www.appinf.com/features/no-whitespace-in-element-content", false);
+		Poco::XML::Document* xmlDoc = DOMparser.parse(config_path2 + NETWORKLAYOUT_FILENAME);
+		NetworkParser* networkParser = NetworkParser::getInstance();
+		_networkLayout = networkParser->parse(xmlDoc);
+	} catch (Poco::XML::SAXParseException e){
+		std::cout << "Failure while parsing network_layout.xml file at line " << e.getLineNumber() << " and column " << e.getColumnNumber() << ": " << e.name() << std::endl;
+		exit(1);
+	}
+
+	//Parse shorewall compiled
+	ShorewallParser::createInstance(config_path2, _networkLayout);
+	ShorewallParser* parser = ShorewallParser::getInstance();
+	_filterTable = parser->parseFilterTable();
+	_natTable = parser->parseNatTable();
+	_mangleTable = parser->parseMangleTable();
+
+	try {
+		//Parse configuration
+		Poco::XML::Document* xmlDoc2 = DOMparser.parse(config_path + CONFIG_FILENAME);
+		ConfigParser::createInstance(config_path);
+		_configParser = ConfigParser::getInstance();
+		_numTrafficBlocks = _configParser->parse(xmlDoc2, _networkLayout);
+	} catch (Poco::XML::SAXParseException e){
+		std::cout << "Failure while parsing config.xml file at line " << e.getLineNumber() << " and column " << e.getColumnNumber() << ": " << e.name() << std::endl;
+		exit(1);
+	}
 }
 
 ClickGenerator::~ClickGenerator() {
-	if (_filterTable) {
+	if (_filterTable)
 		delete _filterTable;
-	}
-	if (_natTable) {
+	if (_natTable)
 		delete _natTable;
-	}
+	if (_mangleTable)
+		delete _mangleTable;
+	if (_networkLayout)
+		delete _networkLayout;
+	if (_configParser)
+		delete _configParser;
 }
 
 void ClickGenerator::printTables(std::ostream& output, bool trace) {
@@ -204,7 +244,7 @@ void ClickGenerator::printTrafficTypes(std::ostream& output, bool trace) {
 	output << std::endl;
 
 	output << "elementclass ArrivingTraffic {" << std::endl;
-	output << "input[0]"
+	output << "	input[0]"
 		<< (trace?" -> Script(TYPE PACKET, print \"Entering the Prerouting chain of the Mangle table.\")":"")
 		<< " -> Paint(ANNO 19, COLOR 4) -> mangle_prerouting :: MangleTable;" << std::endl;
 	output << "	mangle_prerouting[0]"
@@ -232,18 +272,18 @@ void ClickGenerator::printTrafficTypes(std::ostream& output, bool trace) {
 	output << std::endl;
 
 	output << "elementclass OutgoingTraffic {" << std::endl;
-	output << "input[0]"
+	output << "	input[0]"
 		<< (trace?" -> Script(TYPE PACKET, print \"Following the OUTPUT traffic chains.\")":"")
 		<< " -> out :: OutputTraffic;" << std::endl;
-	output << "out[0] -> ";
+	output << "	out[0] -> ";
 	_networkLayout->printTrafficTypeClassifier(output, "local_or_out", false);
-	output << "out[1] -> [1]output;" << std::endl;
-	output << "out[2] -> [2]output;" << std::endl;
-	output << "local_or_out[0] -> arriving :: ArrivingTraffic;" << std::endl;
-	output << "local_or_out[1] -> [0]output;" << std::endl;
-	output << "arriving[0] -> [0]output;" << std::endl;
-	output << "arriving[1] -> [1]output;" << std::endl;
-	output << "arriving[2] -> [2]output;" << std::endl;
+	output << "	out[1] -> [1]output;" << std::endl;
+	output << "	out[2] -> [2]output;" << std::endl;
+	output << "	local_or_out[0] -> arriving :: ArrivingTraffic;" << std::endl;
+	output << "	local_or_out[1] -> [0]output;" << std::endl;
+	output << "	arriving[0] -> [0]output;" << std::endl;
+	output << "	arriving[1] -> [1]output;" << std::endl;
+	output << "	arriving[2] -> [2]output;" << std::endl;
 	output << "}" << std::endl;
 	output << std::endl;
 }
@@ -270,48 +310,14 @@ void ClickGenerator::printTrafficSwitch(std::ostream& output, bool trace) {
 	output << std::endl;
 }
 
-void ClickGenerator::generateSimulation(std::ostream& output, std::string config_path) {
-	Poco::XML::DOMParser DOMparser;
-
-	//Parse network layout
-	try {
-		//Skip whitespace
-		DOMparser.setFeature("http://www.appinf.com/features/no-whitespace-in-element-content", false);
-		Poco::XML::Document* xmlDoc = DOMparser.parse(config_path + NETWORKLAYOUT_FILENAME);
-		NetworkParser* networkParser = NetworkParser::getInstance();
-		_networkLayout = networkParser->parse(xmlDoc);
-	} catch (Poco::XML::SAXParseException e){
-		std::cout << "Failure while parsing network_layout.xml file at line " << e.getLineNumber() << " and column " << e.getColumnNumber() << ": " << e.name() << std::endl;
-		exit(1);
-	}
-	//Parse shorewall compiled
-	ShorewallParser::createInstance(config_path, _networkLayout);
-	ShorewallParser* parser = ShorewallParser::getInstance();
-	_filterTable = parser->parseFilterTable();
-	_natTable = parser->parseNatTable();
-	_mangleTable = parser->parseMangleTable();
-
-	ConfigParser* configParser = 0;
-	int numTrafficBlocks;
-	try {
-		//Parse configuration
-		Poco::XML::Document* xmlDoc2 = DOMparser.parse(config_path + CONFIG_FILENAME);
-		ConfigParser::createInstance(config_path);
-		configParser = ConfigParser::getInstance();
-		numTrafficBlocks = configParser->parse(xmlDoc2, _networkLayout);
-	} catch (Poco::XML::SAXParseException e){
-		std::cout << "Failure while parsing config.xml file at line " << e.getLineNumber() << " and column " << e.getColumnNumber() << ": " << e.name() << std::endl;
-		exit(1);
-	}
-
-	//Generate click script
+void ClickGenerator::generateSimulation(std::ostream& output) {
 	output << "//Please don't alter the content of this file generated by FireSim" << std::endl;
 	output << "//authors: Nico Van Looy (2008-2009) & Jens De Wit (2008-2010)" << std::endl;
 	output << std::endl;
 
 	output << "//Wait for all traffic to end, then collect statistics and shut down" << std::endl;
 	output << "DriverManager(";
-	for (int i = 1; i <= numTrafficBlocks; i++) {
+	for (int i = 1; i <= _numTrafficBlocks; i++) {
 		output << "pause, ";
 		if (i % 5 == 0)
 			output << std::endl << "\t";
@@ -378,7 +384,7 @@ void ClickGenerator::generateSimulation(std::ostream& output, std::string config
 	output << "DROP[1] -> DROP_false -> Script(TYPE PACKET, write output.switch 2) -> [1]copy" << std::endl;
 	output << std::endl;
 
-	configParser->printClickTraffic(output, _networkLayout);
+	_configParser->printClickTraffic(output, _networkLayout);
 }
 
 void ClickGenerator::generateTraces(std::ostream& output) {

@@ -57,7 +57,7 @@ void Statistics::askForTrace(std::string filename) {
 void Statistics::doTraces() {
 	for (std::vector<std::string>::const_iterator it = _traceVector.begin(); it < _traceVector.end(); it++) {
 		std::string shellCommand = "click " + SCRIPT_DIR + TRACE_SCRIPT + " FILENAME=" + OUTPUT_PATH + *it +
-			".dump >> " + OUTPUT_PATH + *it + ".txt";
+			".dump" + (_isTestRun?" > /dev/null":" > " + OUTPUT_PATH + *it + ".txt");
 
 		if (system(shellCommand.c_str())) {
 			Logger::get("ConsoleLogger").fatal("shell command '" + shellCommand + "' has failed to execute. Aborting...");
@@ -138,7 +138,7 @@ void Statistics::getUserReport() {
 		file.close();
 		removeFile(STATISTICS_FILENAME, "");
 	} else {
-		Logger::get("ConsoleLogger").fatal("Failed to open " + STATISTICS_FILENAME + "created by the click script " + SIMULATION_SCRIPT);
+		Logger::get("ConsoleLogger").fatal("Failed to open " + STATISTICS_FILENAME + " created by the click script " + SIMULATION_SCRIPT);
 		exit(1);
 	}
 }

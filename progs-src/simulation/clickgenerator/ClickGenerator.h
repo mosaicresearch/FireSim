@@ -12,15 +12,17 @@
 //FireSim
 #include "../parser/shorewall-parser/Table.h"
 #include "../parser/network-parser/NetworkLayout.h"
-
+#include "../parser/config-parser/ConfigParser.h"
 
 class ClickGenerator {
 public:
 
 	/**
-	 * Default constructor
+	 * Constructor
+	 * @param config_path The directory where the configuration files are located.
+	 * @isTestRun Indicates whether the run is a test run or not.
 	 */
-	ClickGenerator();
+	ClickGenerator(std::string config_path, bool isTestRun);
 
 	/**
 	 * Destructor
@@ -30,9 +32,8 @@ public:
 	/**
 	 * Generate a simulation click script, based on the current shorewall parser.
 	 * @param output This is the output stream. The generated click script will be printed to this stream.
-	 * @param config_path The directory where the configuration files are located.
 	 */
-	void generateSimulation(std::ostream& output, std::string config_path);
+	void generateSimulation(std::ostream& output);
 
 	/**
 	 * Generate a trace click script for the last runned simulation, based on the current shorewall parser.
@@ -50,5 +51,7 @@ private:
 	Table* _natTable;
 	Table* _mangleTable;
 	NetworkLayout* _networkLayout;
+	ConfigParser* _configParser;
+	int _numTrafficBlocks;
 };
 #endif /* CLICKGENERATOR_H_ */

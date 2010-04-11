@@ -84,23 +84,25 @@ int main(int argc, char *argv[]) {
 	std::string config_path(argv[1]);
 	if (config_path.find_last_of('/') != config_path.length()-1)
 		config_path.append("/");
+	std::string config_path2 = config_path;
+	if (testRun)
+		config_path2 += "../";
 
-	if (!testRun) {
-		//print ascii-logo
-		std::stringstream stringstream;
-		printFireSimLogo(stringstream);
-		Logger::get("ConsoleLogger").information(stringstream.str());
 
-		//Check whether required input files are present in config folder
-		Logger::get("ConsoleLogger").information("Required input files:");
-	}
+	//print ascii-logo
+	std::stringstream stringstream;
+	printFireSimLogo(stringstream);
+	Logger::get("ConsoleLogger").information(stringstream.str());
+
+	//Check whether required input files are present in config folder
+	Logger::get("ConsoleLogger").information("Required input files:");
 
 	//shorewall.compiled
 	Poco::StringTokenizer shorewallCompiledTokenizer(config_path + SHOREWALLCOMPILED_FILENAME, "/", Poco::StringTokenizer::TOK_IGNORE_EMPTY);
-	if (checkFile(config_path + SHOREWALLCOMPILED_FILENAME)) {
+	if (checkFile(config_path2 + SHOREWALLCOMPILED_FILENAME)) {
 		Logger::get("ConsoleLogger").information(shorewallCompiledTokenizer[shorewallCompiledTokenizer.count()-1] + " is found in config folder.");
 	} else {
-		Logger::get("ConsoleLogger").information(shorewallCompiledTokenizer[shorewallCompiledTokenizer.count()-1] + " is not found in config folder. Shorewall can generate this file.");
+		Logger::get("ConsoleLogger").fatal(shorewallCompiledTokenizer[shorewallCompiledTokenizer.count()-1] + " is not found in config folder. Shorewall can generate this file.");
 		exit(1);
 	}
 
@@ -109,26 +111,26 @@ int main(int argc, char *argv[]) {
 	if (checkFile(config_path + CONFIG_FILENAME)) {
 		Logger::get("ConsoleLogger").information(configTokenizer[configTokenizer.count()-1] + " is found in config folder.");
 	} else {
-		Logger::get("ConsoleLogger").information(configTokenizer[configTokenizer.count()-1] + " is not found in config folder. See README.txt for more info.");
+		Logger::get("ConsoleLogger").fatal(configTokenizer[configTokenizer.count()-1] + " is not found in config folder. See README.txt for more info.");
 		exit(1);
 	}
 
 	//network_layout.xml
 	Poco::StringTokenizer networkLayoutTokenizer(config_path + NETWORKLAYOUT_FILENAME, "/", Poco::StringTokenizer::TOK_IGNORE_EMPTY);
-	if (checkFile(config_path + NETWORKLAYOUT_FILENAME)) {
+	if (checkFile(config_path2 + NETWORKLAYOUT_FILENAME)) {
 		Logger::get("ConsoleLogger").information(networkLayoutTokenizer[networkLayoutTokenizer.count()-1] + " is found in config folder.");
 	} else {
-		Logger::get("ConsoleLogger").information(networkLayoutTokenizer[networkLayoutTokenizer.count()-1] + " is not found in config folder. Run [$config]/firewall_config_extract.sh on your firewall. It will generate " + networkLayoutTokenizer[networkLayoutTokenizer.count()-1]);
+		Logger::get("ConsoleLogger").fatal(networkLayoutTokenizer[networkLayoutTokenizer.count()-1] + " is not found in config folder. Run [$config]/firewall_config_extract.sh on your firewall. It will generate " + networkLayoutTokenizer[networkLayoutTokenizer.count()-1]);
 		exit(1);
 	}
 
 	//script_vars.sh
 	Poco::StringTokenizer scriptVarsTokenizer(config_path + SCRIPT_VARS_FILENAME, "/", Poco::StringTokenizer::TOK_IGNORE_EMPTY);
-	if (checkFile(config_path + SCRIPT_VARS_FILENAME)) {
+	if (checkFile(config_path2 + SCRIPT_VARS_FILENAME)) {
 		Logger::get("ConsoleLogger").information(scriptVarsTokenizer[scriptVarsTokenizer.count()-1] + " is found in config folder.");
 		Logger::get("ConsoleLogger").information("");
 	} else {
-		Logger::get("ConsoleLogger").information(scriptVarsTokenizer[scriptVarsTokenizer.count()-1] + " is not found in config folder. Run [$config]/firewall_config_extract.sh on your firewall. It will generate " + scriptVarsTokenizer[scriptVarsTokenizer.count()-1]);
+		Logger::get("ConsoleLogger").fatal(scriptVarsTokenizer[scriptVarsTokenizer.count()-1] + " is not found in config folder. Run [$config]/firewall_config_extract.sh on your firewall. It will generate " + scriptVarsTokenizer[scriptVarsTokenizer.count()-1]);
 		exit(1);
 	}
 
@@ -139,8 +141,8 @@ int main(int argc, char *argv[]) {
 	clickTraceScript.open((SCRIPT_DIR + TRACE_SCRIPT).c_str());
 
 	//Generate click script for simulation
-	ClickGenerator clickGenerator;
-	clickGenerator.generateSimulation(clickSimulationScript, config_path);
+	ClickGenerator clickGenerator(config_path, testRun);
+	clickGenerator.generateSimulation(clickSimulationScript);
 	clickSimulationScript.close();
 	clickGenerator.generateTraces(clickTraceScript);
 	clickTraceScript.close();
