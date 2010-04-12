@@ -1,5 +1,5 @@
 /*
- * copybuffer.{cc,hh}
+ * infoprinter.{cc,hh}
  * Jens De Wit
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
@@ -14,48 +14,54 @@
  */
 
 #include <click/config.h>
-#include "copybuffer.hh"
+#include "infoprinter.hh"
 #include <click/confparse.hh>
 #include <click/error.hh>
 #include <click/packet_anno.hh>
 #include <vector>
+#include <iostream>
+#include <fstream>
+#include "assert.h"
 CLICK_DECLS
 
-CopyBuffer::CopyBuffer()
+InfoPrinter::InfoPrinter()
 {
 }
 
-CopyBuffer::~CopyBuffer()
+InfoPrinter::~InfoPrinter()
 {
 }
 
 int
-CopyBuffer::configure(Vector<String> &conf, ErrorHandler *errh)
+InfoPrinter::configure(Vector<String> &conf, ErrorHandler *errh)
 {
-    if (cp_va_kparse(conf, this, errh, cpEnd) < 0) {
-    	errh->error("No arguments for CopyBuffer supported.");
+    if (cp_va_kparse(conf, this, errh,
+    		"FILE", cpkP+cpkM, cpString, &_file,
+    		cpEnd) < 0) {
     	return -1;
     }
+
     return 0;
 }
 
 void
-CopyBuffer::push(int port, Packet* p)
+InfoPrinter::push(int, Packet* p)
 {
-	if (port == 0) {
-		_packet = p->clone();
-		output(0).push(p);
-	} else if (port == 1) {
-		_packet->set_anno_u32(EXTRA_PACKETS_ANNO_OFFSET, p->anno_u32(EXTRA_PACKETS_ANNO_OFFSET));
+	std::vector<String>* vector_ptr = (std::vector<String>*) p->anno_u32(EXTRA_PACKETS_ANNO_OFFSET);
+	assert(p->anno_u32(EXTRA_PACKETS_ANNO_OFFSET) != 0);
 
-		std::vector<Element*>* vector_ptr = (std::vector<Element*>*) p->anno_u32(AGGREGATE_ANNO_OFFSET);
-		if (vector_ptr != 0)
-			delete vector_ptr;
-		p->kill();
-
-		output(1).push(_packet);
+	if(_file.compare(String("")) != 0) {
+		std::ofstream file(_file.c_str(), std::ios::app);
+		std::vector<String>::iterator it;
+		for (it = vector_ptr->begin(); it < vector_ptr->end(); it++) {
+			file << it->c_str() << std::endl;
+		}
+		file.close();
 	}
+
+	delete vector_ptr;
+	output(0).push(p);
 }
 
 CLICK_ENDDECLS
-EXPORT_ELEMENT(CopyBuffer)
+EXPORT_ELEMENT(InfoPrinter)

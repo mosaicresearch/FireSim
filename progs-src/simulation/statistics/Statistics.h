@@ -20,7 +20,7 @@ public:
 	/**
 	 * Constructor
 	 */
-	Statistics(bool testRun);
+	Statistics();
 
 	/**
 	 * Destructor
@@ -33,16 +33,6 @@ public:
 	 */
 	void getUserReport();
 
-	/**
-	 * Generate a status report of the firewall simulation.
-	 * @param output is an outputstream for the report.
-	 */
-	void doTraces();
-
-private:
-	std::vector<std::string> _traceVector;
-	bool _isTestRun;
-	void askForTrace(std::string filename);
 };
 
 #endif /* STATISTICS_H_ */

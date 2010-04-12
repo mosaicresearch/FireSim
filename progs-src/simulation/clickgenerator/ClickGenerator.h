@@ -35,17 +35,10 @@ public:
 	 */
 	void generateSimulation(std::ostream& output);
 
-	/**
-	 * Generate a trace click script for the last runned simulation, based on the current shorewall parser.
-	 * @pre GenerateSimulation must once be called.
-	 * @param output This is the output stream. The generated click script will be printed to this stream.
-	 */
-	void generateTraces(std::ostream& output);
-
 private:
-	void printTables(std::ostream& output, bool trace);
-	void printTrafficTypes(std::ostream& output, bool trace);
-	void printTrafficSwitch(std::ostream& output, bool trace);
+	void printTables(std::ostream& output);
+	void printTrafficTypes(std::ostream& output);
+	void printTrafficSwitch(std::ostream& output);
 
 	Table* _filterTable;
 	Table* _natTable;
@@ -53,5 +46,6 @@ private:
 	NetworkLayout* _networkLayout;
 	ConfigParser* _configParser;
 	int _numTrafficBlocks;
+	bool _testRun;
 };
 #endif /* CLICKGENERATOR_H_ */

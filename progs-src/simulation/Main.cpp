@@ -144,15 +144,10 @@ int main(int argc, char *argv[]) {
 	ClickGenerator clickGenerator(config_path, testRun);
 	clickGenerator.generateSimulation(clickSimulationScript);
 	clickSimulationScript.close();
-	clickGenerator.generateTraces(clickTraceScript);
-	clickTraceScript.close();
 
 	for (int i = 1; i <= numRuns; i++) {
-		Logger::get("ConsoleLogger").information("Simulate firewall with CLICK.");
-
 		//Feedback to the user
-		Statistics stats = Statistics(testRun);
+		Statistics stats = Statistics();
 		stats.getUserReport();
-		stats.doTraces();
 	}
 }

@@ -41,36 +41,17 @@ public:
 	 */
 	Chain* get(std::string name);
 
-//	/**
-//	 * Verify whether a backtracker is needed for this table.
-//	 * @return corresponding boolean.
-//	 */
-//	bool backtrackerNeeded();
-
 	/**
 	 * Print click classifier block
 	 * @param ostream This is the output stream. The classifier block will be printed to this stream.
-	 * @param prefix Concatenate this string in front of the click classifier name.
 	 */
-	void printClickClassifiers(std::ostream& ostream, std::string prefix);
+	void printClickClassifiers(std::ostream& ostream);
 
 	/**
 	 * Print click simulation block
 	 * @param ostream This is the output stream. The simulation block will be printed to this stream.
 	 */
-	void printClickSimulation(std::ostream& ostream, std::string prefix);
-
-	/**
-	 * Print click trace simulation block
-	 * @param ostream This is the output stream. The trace simulation block will be printed to this stream.
-	 */
-	void printClickTraceSimulation(std::ostream& ostream, std::string prefix);
-
-	/**
-	 * Print click pretty printers block
-	 * @param ostream This is the output stream. The pretty print block will be printed to this stream.
-	 */
-	void printPrettyPrinters(std::ostream& ostream, std::string prefix);
+	void printClickSimulation(std::ostream& ostream);
 
 private:
 	std::map<std::string, Chain*> _map;

@@ -19,56 +19,14 @@
 
 using Poco::Logger;
 
-Statistics::Statistics(bool isTestRun){
-	_isTestRun = isTestRun;
+Statistics::Statistics(){
 }
 
 Statistics::~Statistics(){
-
-}
-
-void Statistics::askForTrace(std::string filename) {
-	if (_isTestRun) {
-		_traceVector.push_back(filename);
-	} else {
-		Logger::get("ConsoleLogger").information("Do you want a trace for these packets? (y/n)");
-		std::cout << "> ";
-		std::cin.clear();
-		std::string x;
-
-		while(true) {
-			getline(std::cin, x);
-			if ((x != "y") && (x != "n") && (x != "Y") && (x != "N")
-					&& (x != "yes") && (x != "no")) {
-				Logger::get("ConsoleLogger").information("Wrong input. Do you want a trace for these packets? (y/n)");
-				std::cout << "> ";
-			} else {
-				break;
-			}
-		}
-		if((x == "y") || (x == "yes") || (x == "Y")){
-			//Add filename to pending traces
-			_traceVector.push_back(filename);
-		}
-	}
-
-}
-
-void Statistics::doTraces() {
-	for (std::vector<std::string>::const_iterator it = _traceVector.begin(); it < _traceVector.end(); it++) {
-		std::string shellCommand = "click " + SCRIPT_DIR + TRACE_SCRIPT + " FILENAME=" + OUTPUT_PATH + *it +
-			".dump" + (_isTestRun?" > /dev/null":" > " + OUTPUT_PATH + *it + ".txt");
-
-		if (system(shellCommand.c_str())) {
-			Logger::get("ConsoleLogger").fatal("shell command '" + shellCommand + "' has failed to execute. Aborting...");
-			exit(1);
-		}
-
-		Logger::get("ConsoleLogger").information("Finished tracing " + *it + ".dump: see " + *it + ".txt in output folder");
-	}
 }
 
 void Statistics::getUserReport() {
+	Logger::get("ConsoleLogger").information("Simulate firewall with CLICK.");
 	std::string shellCommand = "click " + SCRIPT_DIR + SIMULATION_SCRIPT;
 	if (system(shellCommand.c_str()) == -1) {
 		Logger::get("ConsoleLogger").fatal("shell command '" + shellCommand + "' has failed to execute. Aborting...");
@@ -92,9 +50,8 @@ void Statistics::getUserReport() {
 		numLostPackets -= stringToInt(line);
 		std::string report = "Total packets incorrectly accepted: " + line;
 		if (stringToInt(line) > 0) {
-			report += " (see faulty_accept.dump in output folder)";
+			report += " (see faulty_accept.{dump,txt} in output folder)";
 			Logger::get("ConsoleLogger").information(report);
-			askForTrace("faulty_accept");
 		} else {
 			Logger::get("ConsoleLogger").information(report);
 			removeFile("faulty_accept.dump", OUTPUT_PATH);
@@ -108,9 +65,8 @@ void Statistics::getUserReport() {
 		numLostPackets -= stringToInt(line);
 		report = "Total packets incorrectly rejected: " + line;
 		if (stringToInt(line) > 0) {
-			report += " (see faulty_reject.dump in output folder)";
+			report += " (see faulty_reject.{dump,txt} in output folder)";
 			Logger::get("ConsoleLogger").information(report);
-			askForTrace("faulty_reject");
 		} else {
 			Logger::get("ConsoleLogger").information(report);
 			removeFile("faulty_reject.dump", OUTPUT_PATH);
@@ -124,9 +80,8 @@ void Statistics::getUserReport() {
 		numLostPackets -= stringToInt(line);
 		report = "Total packets incorrectly dropped: " + line;
 		if (stringToInt(line) > 0) {
-			report += " (see faulty_drop.dump in output folder)";
+			report += " (see faulty_drop.{dump,txt} in output folder)";
 			Logger::get("ConsoleLogger").information(report);
-			askForTrace("faulty_drop");
 		} else {
 			Logger::get("ConsoleLogger").information(report);
 			removeFile("faulty_drop.dump", OUTPUT_PATH);

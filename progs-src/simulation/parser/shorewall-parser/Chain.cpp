@@ -73,22 +73,24 @@ void Chain::printClickClassifiers(std::ostream& ostream, std::string prefix){
 	}
 }
 
-void Chain::printClickTraceSimulation(std::ostream& ostream, std::string prefix, std::string postfix){
+void Chain::printClickSimulation(std::ostream& ostream, std::string prefix, std::string postfix){
 	int nrOfRules = _rules.size();
-	for (int index = 0; index < (nrOfRules-1); index++) {
+	for (int index = 0; index < nrOfRules; index++) {
 		Chain* target = _rules[index]->getJumpChain();
 		if (_rules[index]->ignore()) {
 			//this rule must be ignored ==> jump to next rule
 			ostream << "\t" << prefix << this->getName() << (index + 1) << "[0]"
-					<< " -> " << prefix << this->getName() << (index + 2) << postfix << ";" << std::endl;
+			<< " -> InfoPainter(\"*** Rule ignored: " << _rules[index]->getIpTablesText().substr(3, std::string::npos) << " ***\")"
+			<< " -> " << prefix << this->getName() << (index + 2) << postfix << ";" << std::endl;
 		} else if (!_rules[index]->hasCondition()){
 			//this rule has no conditions ==> jump to target
-			ostream << "\t" << prefix << this->getName() << (index + 1) << "[0]";
+			ostream << "\t" << prefix << this->getName() << (index + 1) << "[0]"
+			<< " -> InfoPainter(\"" << _rules[index]->getIpTablesText().substr(3, std::string::npos) << " (succeeded)\")";
 			if (target->getName() == "RETURN") {
 				ostream << " -> bt;" << std::endl;
 			} else if (target->getName() == "MASQUERADE") {
 				ostream << " -> BacktrackPainter(" << prefix << this->getName() << (index + 2) << postfix << ")"
-						<< " -> masq;" << std::endl;
+				<< " -> masq;" << std::endl;
 			} else if ((target->getName() == "SNAT") || (target->getName() == "DNAT")) {
 				_rules[index]->printIPRewriter(ostream);
 				ostream	<< " -> " << prefix << this->getName() << (index + 2) << postfix << ";" <<std::endl;
@@ -96,22 +98,24 @@ void Chain::printClickTraceSimulation(std::ostream& ostream, std::string prefix,
 				ostream << " -> " << target->getName() << ";" <<std::endl;
 			} else {
 				ostream << " -> BacktrackPainter(" << prefix << this->getName() << (index + 2) << postfix << ")"
-						<< " -> " << prefix << target->getName() << "1" << postfix << ";" << std::endl;
+				<< " -> " << prefix << target->getName() << "1" << postfix << ";" << std::endl;
 			}
 		} else if (_rules[index]->needsIPClassifier() && _rules[index]->needsClassifier()) {
 			//this rule has conditions that must be simulated by an IPClassifier and a general Classifier
 			ostream << "\t" << prefix << this->getName() << (index + 1) << "[0]"
-					<< " -> " << prefix << this->getName() << (index + 1) << "B;" << std::endl;
+			<< " -> " << prefix << this->getName() << (index + 1) << "B;" << std::endl;
 
 			ostream << "\t" << prefix << this->getName() << (index + 1) << "[1]"
-					<< " -> " << prefix << this->getName() << (index + 2) << postfix << ";" << std::endl;
+			<< " -> InfoPainter(\"" << _rules[index]->getIpTablesText().substr(3, std::string::npos) << " (failed)\")"
+			<< " -> " << prefix << this->getName() << (index + 2) << postfix << ";" << std::endl;
 
-			ostream << "\t" << prefix << this->getName() << (index + 1) << "B[0]";
+			ostream << "\t" << prefix << this->getName() << (index + 1) << "B[0]"
+			<< " -> InfoPainter(\"" << _rules[index]->getIpTablesText().substr(3, std::string::npos) << " (succeeded)\")";
 			if (target->getName() == "RETURN") {
 				ostream << " -> bt;" << std::endl;
 			} else if (target->getName() == "MASQUERADE") {
 				ostream << " -> BacktrackPainter(" << prefix << this->getName() << (index + 2) << postfix << ")"
-						<< " -> masq;" << std::endl;
+				<< " -> masq;" << std::endl;
 			} else if ((target->getName() == "SNAT") || (target->getName() == "DNAT")) {
 				_rules[index]->printIPRewriter(ostream);
 				ostream	<< " -> " << prefix << this->getName() << (index + 2) << postfix << ";" <<std::endl;
@@ -119,162 +123,45 @@ void Chain::printClickTraceSimulation(std::ostream& ostream, std::string prefix,
 				ostream << " -> " << target->getName() << ";" <<std::endl;
 			} else {
 				ostream << " -> BacktrackPainter(" << prefix << this->getName() << (index + 2) << postfix << ")"
-						<< " -> " << prefix << target->getName() << "1" << postfix << ";" <<std::endl;
+				<< " -> " << prefix << target->getName() << "1" << postfix << ";" <<std::endl;
 			}
 			ostream << "\t" << prefix << this->getName() << (index + 1) << "B[1]"
-					<< " -> " << prefix << this->getName() << (index + 2) << postfix << ";" << std::endl;
+			<< " -> InfoPainter(\"" << _rules[index]->getIpTablesText().substr(3, std::string::npos) << " (failed)\")"
+			<< " -> " << prefix << this->getName() << (index + 2) << postfix << ";" << std::endl;
 		} else if (_rules[index]->needsIPClassifier() || _rules[index]->needsClassifier()) {
 			//only 1 classifier is needed
-			ostream << "\t" << prefix << this->getName() << (index + 1) << "[0]";
+			ostream << "\t" << prefix << this->getName() << (index + 1) << "[0]"
+			<< " -> InfoPainter(\"" << _rules[index]->getIpTablesText().substr(3, std::string::npos) << " (succeeded)\")";
 			if (target->getName() == "RETURN") {
-				 ostream << " -> bt;" << std::endl;
+				ostream << " -> bt;" << std::endl;
 			} else if (target->getName() == "MASQUERADE") {
 				ostream << " -> BacktrackPainter(" << prefix << this->getName() << (index + 2) << postfix << ")"
-						<< " -> masq;" << std::endl;
+				<< " -> masq;" << std::endl;
 			} else if ((target->getName() == "SNAT") || (target->getName() == "DNAT")) {
-				 _rules[index]->printIPRewriter(ostream);
+				_rules[index]->printIPRewriter(ostream);
 				ostream	<< " -> " << prefix << this->getName() << (index + 2) << postfix << ";" <<std::endl;
 			} else if (target->isFinal()) {
 				ostream << " -> " << target->getName() << ";" <<std::endl;
 			} else {
 				ostream << " -> BacktrackPainter(" << prefix << this->getName() << (index + 2) << postfix << ")"
-						<< " -> " << prefix << target->getName() << "1" << postfix << ";" << std::endl;
+				<< " -> " << prefix << target->getName() << "1" << postfix << ";" << std::endl;
 			}
 			ostream << "\t" << prefix << this->getName() << (index + 1) << "[1]"
-					<< " -> " << prefix << this->getName() << (index + 2)  << postfix << ";" << std::endl;
+			<< " -> InfoPainter(\"" << _rules[index]->getIpTablesText().substr(3, std::string::npos) << " (failed)\")"
+			<< " -> " << prefix << this->getName() << (index + 2)  << postfix << ";" << std::endl;
 		} else {
 			assert(false);
 		}
 	}
-
-	if (nrOfRules == 0 && _usedChain) {
-		ostream << "\t";
-		if (_policy=="") {
+	if (_usedChain) {
+		if (_policy == "") {
 			//no policy set ==> backtrace
-			ostream << prefix << this->getName() << "1[0] -> bt;" << std::endl;
+			ostream << "\t" << prefix << this->getName() << (_rules.size() + 1) << "[0] -> InfoPainter(\"*** Backtracking: leaving "
+			<< this->getName() << " chain ***\") -> bt;" << std::endl;
 		} else {
 			//jump to policy
-			ostream << prefix << this->getName() << "1[0] -> " << _policy << "; //Default policy" << std::endl;
-		}
-	} else if(nrOfRules > 0) {
-		//Process last rule
-		Rule* rule = _rules[_rules.size()-1];
-		Chain* target = rule->getJumpChain();
-
-		if (rule->ignore()) {
-			ostream << "\t" << prefix << this->getName() << _rules.size() << "[0]"
-					<< " -> " << prefix << this->getName() << (_rules.size() + 1) << postfix << ";" << std::endl;
-			if (_policy==""){
-				//no policy set ==> backtracking needed
-				ostream << "\t" << prefix << this->getName() << (_rules.size() + 1) << "[0] -> bt;" << std::endl;
-			} else {
-				//jump to default policy
-//				ostream << prefix << this->getName() << (_rules.size()) << "[0]"
-//						<< " -> " << prefix << this->getName() << postfix << (_rules.size() + 1) << ";" << std::endl;
-				ostream << "\t" << prefix << this->getName() << (_rules.size() + 1) << "[0]"
-						<< " -> " << _policy << "; //Default policy" << std::endl;
-			}
-		} else if (!rule->hasCondition()){
-			//this rule has no conditions ==> jump to target
-			ostream << "\t" << prefix << this->getName() << _rules.size() << "[0]";
-			if (target->getName() == "RETURN") {
-				ostream << " -> bt;" << std::endl;
-			} else if (target->getName() == "MASQUERADE") {
-				ostream << " -> BacktrackPainter(" << prefix << this->getName() << (_rules.size() + 1) << postfix << ")"
-						<< " -> masq;" << std::endl;
-			} else if ((target->getName() == "SNAT") || (target->getName() == "DNAT")) {
-				rule->printIPRewriter(ostream);
-				ostream	<< " -> " << prefix << this->getName() << (_rules.size() + 1) << postfix << ";" <<std::endl;
-			} else if (target->isFinal()) {
-				ostream << " -> " << target->getName() << ";" <<std::endl;
-			} else {
-				ostream << " -> BacktrackPainter(" << prefix << this->getName() << (_rules.size() + 1) << postfix << ")"
-						<< " -> " << prefix << target->getName() << "1" << postfix << ";" << std::endl;
-			}
-			if (_policy=="") {
-				//no policy set ==> backtrace
-				ostream << "\t" << prefix << this->getName() << (_rules.size() + 1) << "[0] -> bt;" << std::endl;
-			} else {
-				//jump to policy
-				ostream << "\t" << prefix << this->getName() << (_rules.size() + 1) << "[0]"
-						<< " -> " << _policy << "; //Default policy" << std::endl;
-			}
-		} else if (rule->needsIPClassifier() && rule->needsClassifier()) {
-			ostream << "\t" << prefix << this->getName() << _rules.size() << "[0]"
-					<< " -> " << prefix << this->getName() << _rules.size() << "B;" << std::endl;
-			ostream << "\t" << prefix << this->getName() << (_rules.size()) << "[1]"
-					<< " -> " << prefix << this->getName() << (_rules.size() + 1) << postfix << ";" << std::endl;
-			ostream << "\t" << prefix << this->getName() << _rules.size() << "B[0]";
-			if (target->getName() == "RETURN") {
-				ostream << " -> bt;" << std::endl;
-			} else if (target->getName() == "MASQUERADE") {
-				ostream << " -> BacktrackPainter(" << prefix << this->getName() << (_rules.size() + 1) << postfix << ")"
-						<< " -> masq;" << std::endl;
-			} else if ((target->getName() == "SNAT") || (target->getName() == "DNAT")) {
-				rule->printIPRewriter(ostream);
-				ostream	<< " -> " << prefix << this->getName() << (_rules.size() + 1) << postfix << ";" <<std::endl;
-			} else if (target->isFinal()){
-				ostream << " -> " << target->getName() << ";" <<std::endl;
-			} else {
-				ostream << " -> BacktrackPainter(" << prefix << this->getName() << ( _rules.size() + 1) << postfix << ")"
-						<< " -> " << prefix << target->getName() << "1" << postfix << ";" << std::endl;
-			}
-			ostream << "\t" << prefix << this->getName() << (_rules.size()) << "B[1]"
-					<< " -> " << prefix << this->getName() << (_rules.size() + 1) << postfix << ";" << std::endl;
-			ostream << "\t" << prefix << this->getName() << (_rules.size() + 1) << "[0]";
-			if(_policy=="") {
-				//perform backtracking because no default policy is set
-				ostream << " -> bt;" << std::endl;
-			} else {
-				//jump to default policy
-				ostream << " -> " << _policy << "; //Default policy" << std::endl;
-			}
-		} else if (rule->needsIPClassifier() || rule->needsClassifier()) {
-			ostream << "\t" << prefix << this->getName() << _rules.size() << "[0]";
-			if (target->getName() == "RETURN") {
-				ostream << " -> bt;" << std::endl;
-			} else if (target->getName() == "MASQUERADE") {
-				ostream << " -> BacktrackPainter(" << prefix << this->getName() << (_rules.size() + 1) << postfix << ")"
-						<< " -> masq;" << std::endl;
-			} else if ((target->getName() == "SNAT") || (target->getName() == "DNAT")) {
-				rule->printIPRewriter(ostream);
-				ostream	<< " -> " << prefix << this->getName() << (_rules.size() + 1) << postfix << ";" <<std::endl;
-			} else if (target->isFinal()){
-				ostream << " -> " << target->getName() << ";" <<std::endl;
-			} else {
-				ostream << " -> BacktrackPainter(" << prefix << this->getName() << ( _rules.size() + 1) << postfix << ")"
-						<< " -> " << prefix << target->getName() << "1" << postfix << ";" <<std::endl;
-			}
-			ostream << "\t" << prefix << this->getName() << (_rules.size()) << "[1]"
-					<< " -> " << prefix << this->getName() << (_rules.size() + 1) << postfix << ";" << std::endl;
-			ostream << "\t" << prefix << this->getName() << (_rules.size() + 1) << "[0]";
-			if (_policy=="") {
-				ostream << " -> bt;" << std::endl;
-			} else {
-				ostream << " -> " << _policy << "; //Default policy" << std::endl;
-			}
-		} else {
-			assert(false);
-		}
-	}
-}
-
-void Chain::printPrettyPrinters(std::ostream& ostream, std::string prefix){
-	for (int index = 0; index < _rules.size(); index++) {
-		ostream << "	Idle -> ";
-		if (_rules[index]->ignore()){
-			ostream << prefix << this->getName() << (index + 1) << "Print :: Script(TYPE PACKET, print \"*** Rule ignored: "<< _rules[index]->getIpTablesText().substr(3, std::string::npos) <<" ***\") -> " << prefix << this->getName() << (index + 1) << ";" << std::endl;
-		} else {
-			ostream << prefix << this->getName() << (index + 1) << "Print :: Script(TYPE PACKET, print \""<< _rules[index]->getIpTablesText().substr(3, std::string::npos) <<"\") -> " << prefix << this->getName() << (index + 1) << ";" << std::endl;
-		}
-	}
-	if((_rules.empty() && _usedChain) || (!_rules.empty())) {
-		if(_policy != "") {
-			ostream << "	Idle -> " << prefix << this->getName() <<  (_rules.size() + 1) << "Print :: Script(TYPE PACKET, print \"*** Policy of " << this->getName() << " chain triggered: " << _policy << " ***\")"
-					<< " -> " << prefix << this->getName() << (_rules.size() + 1) << ";" << std::endl;
-		} else {
-			ostream << "	Idle -> " << prefix << this->getName() << (_rules.size() + 1) << "Print :: Script(TYPE PACKET, print \"*** Backtracking: leaving " << this->getName() << " chain ***\")"
-					<< " -> " << prefix << this->getName() << (_rules.size() + 1) << ";" << std::endl;
+			ostream << "\t" << prefix << this->getName() << (_rules.size() + 1) << "[0] -> InfoPainter(\"*** Policy of " << this->getName()
+			<< " chain triggered: " << _policy << " ***\") -> " << _policy << ";" << std::endl;
 		}
 	}
 }

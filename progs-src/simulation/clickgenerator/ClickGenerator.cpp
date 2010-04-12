@@ -20,7 +20,7 @@
 #include "../parser/network-parser/NetworkParser.h"
 #include "../ApplicationConstants.h"
 
-ClickGenerator::ClickGenerator(std::string config_path, bool isTestRun) {
+ClickGenerator::ClickGenerator(std::string config_path, bool testRun) {
 	_filterTable = 0;
 	_natTable = 0;
 	_mangleTable = 0;
@@ -28,7 +28,7 @@ ClickGenerator::ClickGenerator(std::string config_path, bool isTestRun) {
 	_configParser = 0;
 
 	std::string config_path2 = config_path;
-	if (isTestRun)
+	if (_testRun = testRun)
 		config_path2 += "../";
 
 	Poco::XML::DOMParser DOMparser;
@@ -41,7 +41,8 @@ ClickGenerator::ClickGenerator(std::string config_path, bool isTestRun) {
 		NetworkParser* networkParser = NetworkParser::getInstance();
 		_networkLayout = networkParser->parse(xmlDoc);
 	} catch (Poco::XML::SAXParseException e){
-		std::cout << "Failure while parsing network_layout.xml file at line " << e.getLineNumber() << " and column " << e.getColumnNumber() << ": " << e.name() << std::endl;
+		std::cout << "Failure while parsing network_layout.xml file at line " << e.getLineNumber()
+			<< " and column " << e.getColumnNumber() << ": " << e.name() << std::endl;
 		exit(1);
 	}
 
@@ -59,7 +60,8 @@ ClickGenerator::ClickGenerator(std::string config_path, bool isTestRun) {
 		_configParser = ConfigParser::getInstance();
 		_numTrafficBlocks = _configParser->parse(xmlDoc2, _networkLayout);
 	} catch (Poco::XML::SAXParseException e){
-		std::cout << "Failure while parsing config.xml file at line " << e.getLineNumber() << " and column " << e.getColumnNumber() << ": " << e.name() << std::endl;
+		std::cout << "Failure while parsing config.xml file at line " << e.getLineNumber()
+			<< " and column " << e.getColumnNumber() << ": " << e.name() << std::endl;
 		exit(1);
 	}
 }
@@ -77,7 +79,7 @@ ClickGenerator::~ClickGenerator() {
 		delete _configParser;
 }
 
-void ClickGenerator::printTables(std::ostream& output, bool trace) {
+void ClickGenerator::printTables(std::ostream& output) {
 	assert(_filterTable);
 	assert(_natTable);
 	assert(_mangleTable);
@@ -87,29 +89,21 @@ void ClickGenerator::printTables(std::ostream& output, bool trace) {
 	output << "	Idle -> bt :: Backtracker;" << std::endl;
 	output << std::endl;
 	output << "	//Translation of the Iptables rules to click syntax" << std::endl;
-	_mangleTable->printClickClassifiers(output, "MANGLE_");
+	_mangleTable->printClickClassifiers(output);
 	output << std::endl;
-	if (trace) {
-		output << "	//Pretty printers" << std::endl;
-		_mangleTable->printPrettyPrinters(output, "MANGLE_");
-		output << std::endl;
-	}
 	output << "	//Element input & output" << std::endl;
 	output << "	input[0] -> ps :: PaintSwitch(ANNO 19);" << std::endl;
-	output << "	ps[0] -> MANGLE_FORWARD1" << (trace?"Print;":";") << std::endl;
-	output << "	ps[1] -> MANGLE_INPUT1" << (trace?"Print;":";") << std::endl;
-	output << "	ps[2] -> MANGLE_OUTPUT1" << (trace?"Print;":";") << std::endl;
-	output << "	ps[3] -> MANGLE_POSTROUTING1" << (trace?"Print;":";") << std::endl;
-	output << "	ps[4] -> MANGLE_PREROUTING1" << (trace?"Print;":";") << std::endl;
+	output << "	ps[0] -> FORWARD1;" << std::endl;
+	output << "	ps[1] -> INPUT1;" << std::endl;
+	output << "	ps[2] -> OUTPUT1;" << std::endl;
+	output << "	ps[3] -> POSTROUTING1;" << std::endl;
+	output << "	ps[4] -> PREROUTING1;" << std::endl;
 	output << "	Idle -> ACCEPT :: Null -> [0]output;" << std::endl;
 	output << "	Idle -> REJECT :: Null -> [1]output;" << std::endl;
 	output << "	Idle -> DROP :: Null -> [2]output;" << std::endl;
 	output << std::endl;
 	output << "	//Linking of the Iptables rules" << std::endl;
-	if (trace)
-		_mangleTable->printClickTraceSimulation(output, "MANGLE_");
-	else
-		_mangleTable->printClickSimulation(output, "MANGLE_");
+	_mangleTable->printClickSimulation(output);
 	output << "}" << std::endl;
 	output << std::endl;
 
@@ -119,27 +113,19 @@ void ClickGenerator::printTables(std::ostream& output, bool trace) {
 	output << std::endl;
 	_networkLayout->printMasqueradeSwitch(output);
 	output << "	//Translation of the Iptables rules to click syntax" << std::endl;
-	_natTable->printClickClassifiers(output, "NAT_");
+	_natTable->printClickClassifiers(output);
 	output << std::endl;
-	if (trace) {
-		output << "	//Pretty printers" << std::endl;
-		_natTable->printPrettyPrinters(output, "NAT_");
-		output << std::endl;
-	}
 	output << "	//Element input & output" << std::endl;
 	output << "	input[0] -> ps :: PaintSwitch(ANNO 19);" << std::endl;
-	output << "	ps[0] -> NAT_OUTPUT1" << (trace?"Print;":";") << std::endl;
-	output << "	ps[1] -> NAT_POSTROUTING1" << (trace?"Print;":";") << std::endl;
-	output << "	ps[2] -> NAT_PREROUTING1" << (trace?"Print;":";") << std::endl;
+	output << "	ps[0] -> OUTPUT1;" << std::endl;
+	output << "	ps[1] -> POSTROUTING1;" << std::endl;
+	output << "	ps[2] -> PREROUTING1;" << std::endl;
 	output << "	Idle -> ACCEPT :: Null -> [0]output;" << std::endl;
 	output << "	Idle -> REJECT :: Null -> [1]output;" << std::endl;
 	output << "	Idle -> DROP :: Null -> [2]output;" << std::endl;
 	output << std::endl;
 	output << "	//Linking of the Iptables rules" << std::endl;
-	if (trace)
-		_natTable->printClickTraceSimulation(output, "NAT_");
-	else
-		_natTable->printClickSimulation(output, "NAT_");
+	_natTable->printClickSimulation(output);
 	output << "}" << std::endl;
 	output << std::endl;
 
@@ -148,48 +134,40 @@ void ClickGenerator::printTables(std::ostream& output, bool trace) {
 	output << "	Idle -> bt :: Backtracker;" << std::endl;
 	output << std::endl;
 	output << "	//Translation of the Iptables rules to click syntax" << std::endl;
-	_filterTable->printClickClassifiers(output, "FILTER_");
+	_filterTable->printClickClassifiers(output);
 	output << std::endl;
-	if (trace) {
-		output << "	//Pretty printers" << std::endl;
-		_filterTable->printPrettyPrinters(output, "FILTER_");
-		output << std::endl;
-	}
 	output << "	input[0] -> ps :: PaintSwitch(ANNO 19);" << std::endl;
-	output << "	ps[0] -> FILTER_FORWARD1" << (trace?"Print;":";") << std::endl;
-	output << "	ps[1] -> FILTER_INPUT1" << (trace?"Print;":";") << std::endl;
-	output << "	ps[2] -> FILTER_OUTPUT1" << (trace?"Print;":";") << std::endl;
+	output << "	ps[0] -> FORWARD1;" << std::endl;
+	output << "	ps[1] -> INPUT1;" << std::endl;
+	output << "	ps[2] -> OUTPUT1;" << std::endl;
 	output << "	Idle -> ACCEPT :: Null -> [0]output;" << std::endl;
 	output << "	Idle -> REJECT :: Null -> [1]output;" << std::endl;
 	output << "	Idle -> DROP :: Null -> [2]output;" << std::endl;
 	output << std::endl;
 	output << "	//Linking of the Iptables rules" << std::endl;
-	if (trace)
-		_filterTable->printClickTraceSimulation(output, "FILTER_");
-	else
-		_filterTable->printClickSimulation(output, "FILTER_");
+	_filterTable->printClickSimulation(output);
 	output << "}" << std::endl;
 	output << std::endl;
 }
 
-void ClickGenerator::printTrafficTypes(std::ostream& output, bool trace) {
+void ClickGenerator::printTrafficTypes(std::ostream& output) {
 	output << "elementclass ForwardTraffic {" << std::endl;
 	output << "	input[0]"
-		<< (trace?" -> Script(TYPE PACKET, print \"Entering the Forward chain of the Mangle table.\")":"")
-		<< "-> Paint(ANNO 19, COLOR 0) -> mangle_forward :: MangleTable;" << std::endl;
+		<< " -> InfoPainter(\"Entering the Forward chain of the Mangle table.\")"
+		<< " -> Paint(ANNO 19, COLOR 0) -> mangle_forward :: MangleTable;" << std::endl;
 	output << "	mangle_forward[0]"
-		<< (trace?" -> Script(TYPE PACKET, print \"Entering the Forward chain of the Filter table.\")":"")
-		<< "-> Paint(ANNO 19, COLOR 0) -> filter_forward :: FilterTable;" << std::endl;
+		<< " -> InfoPainter(\"Entering the Forward chain of the Filter table.\")"
+		<< " -> Paint(ANNO 19, COLOR 0) -> filter_forward :: FilterTable;" << std::endl;
 	output << "	mangle_forward[1] -> [1]output;" << std::endl;
 	output << "	mangle_forward[2] -> [2]output;" << std::endl;
 	output << "	filter_forward[0]"
-		<< (trace?" -> Script(TYPE PACKET, print \"Entering the Postrouting chain of the Mangle table.\")":"")
-		<< "-> Paint(ANNO 19, COLOR 3) -> mangle_postrouting :: MangleTable;" << std::endl;
+		<< " -> InfoPainter(\"Entering the Postrouting chain of the Mangle table.\")"
+		<< " -> Paint(ANNO 19, COLOR 3) -> mangle_postrouting :: MangleTable;" << std::endl;
 	output << "	filter_forward[1] -> [1]output;" << std::endl;
 	output << "	filter_forward[2] -> [2]output;" << std::endl;
 	output << "	mangle_postrouting[0]"
-		<< (trace?" -> Script(TYPE PACKET, print \"Entering the Postrouting chain of the Nat table.\")":"")
-		<< "-> Paint(ANNO 19, COLOR 1) -> nat_postrouting :: NatTable;" << std::endl;
+		<< " -> InfoPainter(\"Entering the Postrouting chain of the Nat table.\")"
+		<< " -> Paint(ANNO 19, COLOR 1) -> nat_postrouting :: NatTable;" << std::endl;
 	output << "	mangle_postrouting[1] -> [1]output;" << std::endl;
 	output << "	mangle_postrouting[2] -> [2]output;" << std::endl;
 	output << "	nat_postrouting[0] -> [0]output;" << std::endl;
@@ -200,11 +178,11 @@ void ClickGenerator::printTrafficTypes(std::ostream& output, bool trace) {
 
 	output << "elementclass InputTraffic {" << std::endl;
 	output << "	input[0]"
-		<< (trace?" -> Script(TYPE PACKET, print \"Entering the Input chain of the Mangle table.\")":"")
-		<< "-> Paint(ANNO 19, COLOR 1) -> mangle_input :: MangleTable;" << std::endl;
+		<< " -> InfoPainter(\"Entering the Input chain of the Mangle table.\")"
+		<< " -> Paint(ANNO 19, COLOR 1) -> mangle_input :: MangleTable;" << std::endl;
 	output << "	mangle_input[0]"
-		<< (trace?" -> Script(TYPE PACKET, print \"Entering the Input chain of the Filter table.\")":"")
-		<< "-> Paint(ANNO 19, COLOR 1) -> filter_input :: FilterTable;" << std::endl;
+		<< " -> InfoPainter(\"Entering the Input chain of the Filter table.\")"
+		<< " -> Paint(ANNO 19, COLOR 1) -> filter_input :: FilterTable;" << std::endl;
 	output << "	mangle_input[1] -> [1]output;" << std::endl;
 	output << "	mangle_input[2] -> [2]output;" << std::endl;
 	output << "	filter_input[0] -> [0]output;" << std::endl;
@@ -215,25 +193,25 @@ void ClickGenerator::printTrafficTypes(std::ostream& output, bool trace) {
 
 	output << "elementclass OutputTraffic {" << std::endl;
 	output << "	input[0]"
-		<< (trace?" -> Script(TYPE PACKET, print \"Entering the Output chain of the Mangle table.\")":"")
+		<< " -> InfoPainter(\"Entering the Output chain of the Mangle table.\")"
 		<< " -> Paint(ANNO 19, COLOR 2) -> mangle_output :: MangleTable;" << std::endl;
 	output << "	mangle_output[0]"
-		<< (trace?" -> Script(TYPE PACKET, print \"Entering the Output chain of the Nat table.\")":"")
-		<< "-> Paint(ANNO 19, COLOR 0) -> nat_output :: NatTable;" << std::endl;
+		<< " -> InfoPainter(\"Entering the Output chain of the Nat table.\")"
+		<< " -> Paint(ANNO 19, COLOR 0) -> nat_output :: NatTable;" << std::endl;
 	output << "	mangle_output[1] -> [1]output;" << std::endl;
 	output << "	mangle_output[2] -> [2]output;" << std::endl;
 	output << "	nat_output[0]"
-		<< (trace?" -> Script(TYPE PACKET, print \"Entering the Output chain of the Filter table.\")":"")
+		<< " -> InfoPainter(\"Entering the Output chain of the Filter table.\")"
 		<< " -> Paint(ANNO 19, COLOR 2) -> filter_output :: FilterTable;" << std::endl;
 	output << "	nat_output[1] -> [1]output;" << std::endl;
 	output << "	nat_output[2] -> [2]output;" << std::endl;
 	output << "	filter_output[0]"
-		<< (trace?" -> Script(TYPE PACKET, print \"Entering the Postrouting chain of the Mangle table.\")":"")
+		<< " -> InfoPainter(\"Entering the Postrouting chain of the Mangle table.\")"
 		<< " -> Paint(ANNO 19, COLOR 3) -> mangle_postrouting :: MangleTable;" << std::endl;
 	output << "	filter_output[1] -> [1]output;" << std::endl;
 	output << "	filter_output[2] -> [2]output;" << std::endl;
 	output << "	mangle_postrouting[0]"
-		<< (trace?" -> Script(TYPE PACKET, print \"Entering the Postrouting chain of the Nat table.\")":"")
+		<< " -> InfoPainter(\"Entering the Postrouting chain of the Nat table.\")"
 		<< " -> Paint(ANNO 19, COLOR 1) -> nat_postrouting :: NatTable;" << std::endl;
 	output << "	mangle_postrouting[1] -> [1]output;" << std::endl;
 	output << "	mangle_postrouting[2] -> [2]output;" << std::endl;
@@ -245,11 +223,11 @@ void ClickGenerator::printTrafficTypes(std::ostream& output, bool trace) {
 
 	output << "elementclass ArrivingTraffic {" << std::endl;
 	output << "	input[0]"
-		<< (trace?" -> Script(TYPE PACKET, print \"Entering the Prerouting chain of the Mangle table.\")":"")
+		<< " -> InfoPainter(\"Entering the Prerouting chain of the Mangle table.\")"
 		<< " -> Paint(ANNO 19, COLOR 4) -> mangle_prerouting :: MangleTable;" << std::endl;
 	output << "	mangle_prerouting[0]"
-		<< (trace?" -> Script(TYPE PACKET, print \"Entering the Prerouting chain of the Nat table.\")":"")
-		<< "-> Paint(ANNO 19, COLOR 2) -> nat_prerouting :: NatTable;" << std::endl;
+		<< " -> InfoPainter(\"Entering the Prerouting chain of the Nat table.\")"
+		<< " -> Paint(ANNO 19, COLOR 2) -> nat_prerouting :: NatTable;" << std::endl;
 	output << "	mangle_prerouting[1] -> [1]output;" << std::endl;
 	output << "	mangle_prerouting[2] -> [2]output;" << std::endl;
 	output << "	nat_prerouting[0] -> ";
@@ -257,10 +235,10 @@ void ClickGenerator::printTrafficTypes(std::ostream& output, bool trace) {
 	output << "	nat_prerouting[1] -> [1]output;" << std::endl;
 	output << "	nat_prerouting[2] -> [2]output;" << std::endl;
 	output << "	in_or_fwd[0]"
-		<< (trace?" -> Script(TYPE PACKET, print \"Following the INPUT traffic chains.\")":"")
+		<< " -> InfoPainter(\"Following the INPUT traffic chains.\")"
 		<< " -> in :: InputTraffic;" << std::endl;
 	output << "	in_or_fwd[1]"
-		<< (trace?" -> Script(TYPE PACKET, print \"Following the FORWARD traffic chains.\")":"")
+		<< " -> InfoPainter(\"Following the FORWARD traffic chains.\")"
 		<< " -> fwd :: ForwardTraffic;" << std::endl;
 	output << "	in[0] -> [0]output;" << std::endl;
 	output << "	in[1] -> [1]output;" << std::endl;
@@ -273,7 +251,7 @@ void ClickGenerator::printTrafficTypes(std::ostream& output, bool trace) {
 
 	output << "elementclass OutgoingTraffic {" << std::endl;
 	output << "	input[0]"
-		<< (trace?" -> Script(TYPE PACKET, print \"Following the OUTPUT traffic chains.\")":"")
+		<< " -> InfoPainter(\"Following the OUTPUT traffic chains.\")"
 		<< " -> out :: OutputTraffic;" << std::endl;
 	output << "	out[0] -> ";
 	_networkLayout->printTrafficTypeClassifier(output, "local_or_out", false);
@@ -288,13 +266,13 @@ void ClickGenerator::printTrafficTypes(std::ostream& output, bool trace) {
 	output << std::endl;
 }
 
-void ClickGenerator::printTrafficSwitch(std::ostream& output, bool trace) {
+void ClickGenerator::printTrafficSwitch(std::ostream& output) {
 	output << "//Traffic type check" << std::endl;
 	_networkLayout->printTrafficTypeClassifier(output, "trafficType", true);
 	output << std::endl;
 	output << "//Output or \"local\" traffic" << std::endl;
 	output << "trafficType[0]"
-		<< (trace?" -> Script(TYPE PACKET, print \"This packet is classified as outgoing traffic (OUTPUT or \"local\".\")":"")
+		<< " -> InfoPainter(\"This packet is classified as outgoing traffic (OUTPUT or \"local\").\")"
 		<< " -> outgoing :: OutgoingTraffic;" << std::endl;
 	output << "outgoing[0] -> ACCEPT;" << std::endl;
 	output << "outgoing[1] -> REJECT;" << std::endl;
@@ -302,7 +280,7 @@ void ClickGenerator::printTrafficSwitch(std::ostream& output, bool trace) {
 	output << std::endl;
 	output << "//Input or forward traffic" << std::endl;
 	output << "trafficType[1]"
-		<< (trace?" -> Script(TYPE PACKET, print \"This packet is classified as arriving traffic (INPUT or FORWARD).\")":"")
+		<< " -> InfoPainter(\"This packet is classified as arriving traffic (INPUT or FORWARD).\")"
 		<< " -> arriving :: ArrivingTraffic;" << std::endl;
 	output << "arriving[0] -> ACCEPT;" << std::endl;
 	output << "arriving[1] -> REJECT;" << std::endl;
@@ -333,9 +311,9 @@ void ClickGenerator::generateSimulation(std::ostream& output) {
 	output << "	stop);" << std::endl;
 	output << std::endl;
 
-	printTables(output, false);
+	printTables(output);
 
-	printTrafficTypes(output, false);
+	printTrafficTypes(output);
 
 	output << "//Painters for statistics" << std::endl;
 	output << "Idle -> ACCEPT :: CheckPaint(COLOR 0);" << std::endl;
@@ -343,10 +321,10 @@ void ClickGenerator::generateSimulation(std::ostream& output) {
 	output << "Idle -> DROP :: CheckPaint(COLOR 2);" << std::endl;
 	output << std::endl;
 
-	printTrafficSwitch(output, false);
+	printTrafficSwitch(output);
 
 	output << "//Counters for statistics" << std::endl;
-	output << "inputCounter :: Counter -> trafficType;" << std::endl;
+	output << "inputCounter :: Counter -> InfoPainter(\"PACKET \", inputCounter.count) -> trafficType;" << std::endl;
 	output << "ACCEPT_true :: Counter;" << std::endl;
 	output << "ACCEPT_false :: Counter;" << std::endl;
 	output << "REJECT_true :: Counter;" << std::endl;
@@ -361,9 +339,12 @@ void ClickGenerator::generateSimulation(std::ostream& output) {
 
 	output << "//Output switch" << std::endl;
 	output << "output :: Switch;" << std::endl;
-	output << "output[0] -> ToDump(\"output/faulty_accept.dump\");" << std::endl;
-	output << "output[1] -> ToDump(\"output/faulty_reject.dump\");" << std::endl;
-	output << "output[2] ->ToDump(\"output/faulty_drop.dump\");" << std::endl;
+	output << "output[0] -> InfoPainter(\"\") -> InfoPrinter(\"" << (_testRun?"":"output/faulty_accept.txt")
+		<< "\") -> ToDump(\"output/faulty_accept.dump\");" << std::endl;
+	output << "output[1] -> InfoPainter(\"\") -> InfoPrinter(\"" << (_testRun?"":"output/faulty_reject.txt")
+		<< "\") -> ToDump(\"output/faulty_reject.dump\");" << std::endl;
+	output << "output[2] -> InfoPainter(\"\") -> InfoPrinter(\"" << (_testRun?"":"output/faulty_drop.txt")
+		<< "\") -> ToDump(\"output/faulty_drop.dump\");" << std::endl;
 	output << std::endl;
 
 	output << "//Do simulation with input traffic" << std::endl;
@@ -385,36 +366,4 @@ void ClickGenerator::generateSimulation(std::ostream& output) {
 	output << std::endl;
 
 	_configParser->printClickTraffic(output, _networkLayout);
-}
-
-void ClickGenerator::generateTraces(std::ostream& output) {
-	assert(_filterTable);
-	assert(_natTable);
-	assert(_mangleTable);
-
-	output << "//Please don't alter the content of this file generated by FireSim" << std::endl;
-	output << "//authors: Nico Van Looy (2008-2009) & Jens De Wit (2008-2010)" << std::endl;
-	output << std::endl;
-
-	printTables(output, true);
-
-	printTrafficTypes(output, true);
-
-	output << "//Policies" << std::endl;
-	output << "Idle -> ACCEPT :: Discard;" << std::endl;
-	output << "Idle -> REJECT :: Discard;" << std::endl;
-	output << "Idle -> DROP :: Discard;" << std::endl;
-	output << std::endl;
-
-	printTrafficSwitch(output, true);
-
-	output << "// Replay specific dump file" << std::endl;
-	output << "FromDump($FILENAME, STOP true)" << std::endl;
-	output << "	-> MarkIPHeader(14)" << std::endl;
-	output << "	-> counter :: Counter" << std::endl;
-	output << "	-> Script(TYPE PACKET," << std::endl;
-	output << "		set packetnr $(counter.count)," << std::endl;
-	output << "		print \"\nPacket\" $packetnr)" << std::endl;
-	output << "	-> trafficType;" << std::endl;
-	output << std::endl;
 }

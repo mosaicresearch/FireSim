@@ -51,11 +51,6 @@ public:
 	 * @return boolean
 	 */
 	bool isFinal();
-//
-//	/**
-//	 * Returns whether this chain needed a backtracker.
-//	 */
-//	bool backtrackerNeeded();
 
 	/**
 	 * Indicate that this chain is used in a rule somewhere
@@ -71,33 +66,16 @@ public:
 	void add(Rule* rule);
 
 	/**
-	 * Print click classifier block
+	 * Print click classifiers
 	 * @param ostream This is the output stream. The classifier block will be printed to this stream.
-	 * @param prefix Concatenate this string in front of the click classifier name.
 	 */
 	void printClickClassifiers(std::ostream& ostream, std::string prefix);
 
 	/**
-	 * Print click simulation block
+	 * Print click simulation
 	 * @param ostream This is the output stream. The simulation block will be printed to this stream.
-	 * @param backtrackerIsNeeded Indication to incorporate a backtracker.
-	 * @param prefix Concatenate this string in front of the click classifier name.
 	 */
-//	void printClickSimulation(std::ostream& ostream, std::string prefix, bool backtrackerIsNeeded);
-
-	/**
-	 * Print click trace simulation block
-	 * @param ostream This is the output stream. The trace simulation block will be printed to this stream.
-	 * @param prefix Concatenate this string in front of the click classifier name.
-	 * @param postfix Append this string to the click classifier name.
-	 */
-	void printClickTraceSimulation(std::ostream& ostream, std::string prefix, std::string postfix = "");
-
-	/**
-	 * Print click pretty printers block
-	 * @param ostream This is the output stream. The pretty print block will be printed to this stream.
-	 */
-	void printPrettyPrinters(std::ostream& ostream, std::string prefix);
+	void printClickSimulation(std::ostream& ostream, std::string prefix, std::string postfix);
 
 private:
 	std::string _name;
