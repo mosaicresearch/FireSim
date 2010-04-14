@@ -355,7 +355,8 @@ void ConfigParser::printClickTraffic(std::ostream& ostream, NetworkLayout* netwo
 	for(std::vector<ConfigContent*>::iterator it = _content.begin(); it != _content.end(); it++){
 		ostream << "//Traffic Block" << std::endl;
 		if ((*it)->dumpPath.first != "") {
-			ostream << ((*it)->dumpPath.second?"FromIPSummaryDump":"FromDump") << "(\"" << (*it)->dumpPath.first << "\", STOP true)";
+			ostream << ((*it)->dumpPath.second?"FromIPSummaryDump":"FromDump") << "(\"" << (*it)->dumpPath.first
+					<< "\", STOP true)" << std::endl;
 			ostream << "	-> EnsureEther(0x0800, " << networkLayout->getMacAddress((*it)->outInterface) << ", "
 					<< networkLayout->getMacAddress((*it)->inInterface) << ")" << std::endl;
 			ostream << "	-> Paint(COLOR " << (*it)->policy << ")" << std::endl;

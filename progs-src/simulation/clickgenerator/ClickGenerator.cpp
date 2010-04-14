@@ -308,7 +308,12 @@ void ClickGenerator::generateSimulation(std::ostream& output) {
 	output << "	print >>" << STATISTICS_FILENAME << " REJECT_false.count," << std::endl;
 	output << "	print >>" << STATISTICS_FILENAME << " DROP_true.count," << std::endl;
 	output << "	print >>" << STATISTICS_FILENAME << " DROP_false.count," << std::endl;
+	output << "	printn >" << OUTPUT_PATH + UNUSED_RULES_FILENAME << " rulesPassedCounter.unused, " << std::endl;
 	output << "	stop);" << std::endl;
+	output << std::endl;
+
+	output << "//Counter to track which rules are actually used" << std::endl;
+	output << "rulesPassedCounter :: StaticCounter;" << std::endl;
 	output << std::endl;
 
 	printTables(output);

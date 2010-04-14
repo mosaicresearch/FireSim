@@ -22,7 +22,7 @@ public:
 	/**
 	 * Constructor
 	 */
-	Table();
+	Table(std::string name);
 
 	/**
 	 * Destructor
@@ -54,6 +54,7 @@ public:
 	void printClickSimulation(std::ostream& ostream);
 
 private:
+	std::string _name;
 	std::map<std::string, Chain*> _map;
 };
 

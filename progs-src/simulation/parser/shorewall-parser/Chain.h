@@ -69,13 +69,14 @@ public:
 	 * Print click classifiers
 	 * @param ostream This is the output stream. The classifier block will be printed to this stream.
 	 */
-	void printClickClassifiers(std::ostream& ostream, std::string prefix);
+	void printClickClassifiers(std::ostream& ostream);
 
 	/**
 	 * Print click simulation
 	 * @param ostream This is the output stream. The simulation block will be printed to this stream.
+	 * @param tableName The name of the table the chain belongs to.
 	 */
-	void printClickSimulation(std::ostream& ostream, std::string prefix, std::string postfix);
+	void printClickSimulation(std::ostream& ostream, std::string tableName);
 
 private:
 	std::string _name;

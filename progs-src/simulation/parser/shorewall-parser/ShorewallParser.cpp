@@ -48,6 +48,8 @@ ShorewallParser* ShorewallParser::getInstance() {
 }
 
 Table* ShorewallParser::parseTable(std::string tableName) {
+	std::string shorewallTable = "*" + tableName;
+
 	std::ifstream stream;
 	stream.open((_path + SHOREWALLCOMPILED_FILENAME).c_str(), std::ios::binary | std::ios::in);
 
@@ -67,11 +69,11 @@ Table* ShorewallParser::parseTable(std::string tableName) {
 	// find the useful part (filter table)
 	std::string input(buffer);
 
-	size_t posTable = input.find(tableName);
+	size_t posTable = input.find(shorewallTable);
 	if (posTable != std::string::npos) {
-		input = input.substr(posTable + tableName.length()+1);
+		input = input.substr(posTable + shorewallTable.length()+1);
 	} else {
-		cout << "Unacceptable file structure! Could not find start of the " << tableName.substr(1) << " table. Aborting." << endl;
+		cout << "Unacceptable file structure! Could not find start of the " << shorewallTable.substr(1) << " table. Aborting." << endl;
 		exit(1);
 	}
 	size_t posCommit = input.find("COMMIT");
@@ -111,7 +113,7 @@ Table* ShorewallParser::parseTable(std::string tableName) {
 			input = input.substr(0, posCommit);
 		}
 	} else {
-		cout << "Unacceptable file structure! Could not find end of the " << tableName.substr(1) << " table. Aborting." << endl;
+		cout << "Unacceptable file structure! Could not find end of the " << shorewallTable.substr(1) << " table. Aborting." << endl;
 		exit(1);
 	}
 
@@ -127,7 +129,7 @@ Table* ShorewallParser::parseTable(std::string tableName) {
 		rules = "";
 	}
 
-	Table* table = new Table();
+	Table* table = new Table(tableName);
 
 	ChainParser* chainParser = ChainParser::getInstance();
 	chainParser->parse(chains, table);
@@ -139,13 +141,13 @@ Table* ShorewallParser::parseTable(std::string tableName) {
 }
 
 Table* ShorewallParser::parseFilterTable() {
-	return parseTable("*filter");
+	return parseTable("filter");
 }
 
 Table* ShorewallParser::parseNatTable() {
-	return parseTable("*nat");
+	return parseTable("nat");
 }
 
 Table* ShorewallParser::parseMangleTable() {
-	return parseTable("*mangle");
+	return parseTable("mangle");
 }

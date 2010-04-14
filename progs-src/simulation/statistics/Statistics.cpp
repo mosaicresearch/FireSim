@@ -50,7 +50,7 @@ void Statistics::getUserReport() {
 		numLostPackets -= stringToInt(line);
 		std::string report = "Total packets incorrectly accepted: " + line;
 		if (stringToInt(line) > 0) {
-			report += " (see faulty_accept.{dump,txt} in output folder)";
+			report += " (see faulty_accept.{dump,txt} in the output folder)";
 			Logger::get("ConsoleLogger").information(report);
 		} else {
 			Logger::get("ConsoleLogger").information(report);
@@ -65,7 +65,7 @@ void Statistics::getUserReport() {
 		numLostPackets -= stringToInt(line);
 		report = "Total packets incorrectly rejected: " + line;
 		if (stringToInt(line) > 0) {
-			report += " (see faulty_reject.{dump,txt} in output folder)";
+			report += " (see faulty_reject.{dump,txt} in the output folder)";
 			Logger::get("ConsoleLogger").information(report);
 		} else {
 			Logger::get("ConsoleLogger").information(report);
@@ -80,7 +80,7 @@ void Statistics::getUserReport() {
 		numLostPackets -= stringToInt(line);
 		report = "Total packets incorrectly dropped: " + line;
 		if (stringToInt(line) > 0) {
-			report += " (see faulty_drop.{dump,txt} in output folder)";
+			report += " (see faulty_drop.{dump,txt} in the output folder)";
 			Logger::get("ConsoleLogger").information(report);
 		} else {
 			Logger::get("ConsoleLogger").information(report);
@@ -92,6 +92,18 @@ void Statistics::getUserReport() {
 
 		file.close();
 		removeFile(STATISTICS_FILENAME, "");
+
+		//check if there are unused rules and inform the user or remove the empty file
+		std::ifstream file((OUTPUT_PATH + UNUSED_RULES_FILENAME).c_str());
+		file.seekg(0, std::ios::end);
+		int length = file.tellg();
+		file.close();
+
+		if (length == 0)
+			removeFile(UNUSED_RULES_FILENAME, OUTPUT_PATH);
+		else
+			Logger::get("ConsoleLogger").information("Unused rules detected: see " + UNUSED_RULES_FILENAME + " in the output folder.");
+
 	} else {
 		Logger::get("ConsoleLogger").fatal("Failed to open " + STATISTICS_FILENAME + " created by the click script " + SIMULATION_SCRIPT);
 		exit(1);

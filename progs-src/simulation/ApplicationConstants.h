@@ -20,6 +20,7 @@ const std::string OUTPUT_PATH = "output/";
 
 //temp file for statistics
 const std::string STATISTICS_FILENAME = std::string("statistics.txt");
+const std::string UNUSED_RULES_FILENAME = std::string("unused_rules.txt");
 
 //Output click files
 const std::string SCRIPT_DIR = "clickscripts/";

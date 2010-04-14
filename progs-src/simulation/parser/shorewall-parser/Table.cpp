@@ -7,7 +7,7 @@
 #include "Table.h"
 #include "assert.h"
 
-Table::Table() {
+Table::Table(std::string name): _name(name) {
 	//Add standard targets
 	this->add(new Chain("ACCEPT",true,true));
 	this->add(new Chain("REJECT",true,true));
@@ -37,7 +37,7 @@ Chain* Table::get(std::string name){
 void Table::printClickClassifiers(std::ostream& ostream){
 	for(std::map<std::string, Chain*>::iterator it = _map.begin(); it != _map.end(); it++){
 		if (!it->second->isFinal()){
-			it->second->printClickClassifiers(ostream, "");
+			it->second->printClickClassifiers(ostream);
 		}
 	}
 }
@@ -45,7 +45,7 @@ void Table::printClickClassifiers(std::ostream& ostream){
 void Table::printClickSimulation(std::ostream& ostream){
 	for(std::map<std::string, Chain*>::iterator it = _map.begin(); it != _map.end(); it++){
 		if (!it->second->isFinal()){
-			it->second->printClickSimulation(ostream, "", "");
+			it->second->printClickSimulation(ostream, _name);
 		}
 	}
 }

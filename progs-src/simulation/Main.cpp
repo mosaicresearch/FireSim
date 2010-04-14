@@ -150,4 +150,5 @@ int main(int argc, char *argv[]) {
 		Statistics stats = Statistics();
 		stats.getUserReport();
 	}
+
 }
