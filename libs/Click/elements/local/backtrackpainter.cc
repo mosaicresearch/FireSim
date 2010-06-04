@@ -34,14 +34,9 @@ BacktrackPainter::~BacktrackPainter()
 int
 BacktrackPainter::configure(Vector<String> &conf, ErrorHandler *errh)
 {
-    if (cp_va_kparse(conf, this, errh,
+    return cp_va_kparse(conf, this, errh,
     		"NEXT", cpkP+cpkM, cpElement, &_next,
-    		cpEnd) < 0)
-    {
-			errh->error("Expecting next classifier.");
-    		return -1;
-    }
-    return 0;
+    		cpEnd);
 }
 
 void

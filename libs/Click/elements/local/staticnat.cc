@@ -1,6 +1,6 @@
 /*
- * backtracker.{cc,hh}
- * Nico Van Looy & Jens De Wit
+ * staticnat.{cc,hh}
+ * Jens De Wit
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -14,39 +14,46 @@
  */
 
 #include <click/config.h>
-#include "backtracker.hh"
+#include "staticnat.hh"
 #include <click/confparse.hh>
 #include <click/error.hh>
-#include <click/packet_anno.hh>
-#include <vector>
-#include "assert.h"
+#include <iostream>
 CLICK_DECLS
 
-Backtracker::Backtracker()
+StaticNat::StaticNat()
 {
+	_stateMachine = new StateMachine();
+	_type = 0;
+	_addr.s_addr = 0;
+	_port = 0;
 }
 
-Backtracker::~Backtracker()
+StaticNat::~StaticNat()
 {
 }
 
 int
-Backtracker::configure(Vector<String> &conf, ErrorHandler *errh)
+StaticNat::configure(Vector<String> &conf, ErrorHandler *errh)
 {
-    return cp_va_kparse(conf, this, errh, cpEnd);
+    if (cp_va_kparse(conf, this, errh,
+    		"TYPE", cpkM+cpkP, cpString, &_type,
+    		"IP", 0, cpIPAddress, &_addr,
+    		"PORT", 0, cpUnsigned, &_port,
+    		cpEnd) < 0) {
+    	return -1;
+    }
+    _port = htons(_port);
+    if (_type == "src" || _type == "dst")
+    	return 0;
+    return -1;
 }
 
 void
-Backtracker::push(int port, Packet* p){
-	std::vector<Element*>* vector_ptr = (std::vector<Element*>*) p->anno_u32(AGGREGATE_ANNO_OFFSET);
-	assert(p->anno_u32(AGGREGATE_ANNO_OFFSET) != 0);
-
-	Element* tmp = vector_ptr->back();
-	vector_ptr->pop_back();
-
-	tmp->push(port, p);
-
+StaticNat::push(int, Packet* p){
+	WritablePacket* packet = p->uniqueify();
+	_stateMachine->doNat(packet, _type, _addr, _port);
+	output(0).push(packet);
 }
 
 CLICK_ENDDECLS
-EXPORT_ELEMENT(Backtracker)
+EXPORT_ELEMENT(StaticNat)

@@ -35,13 +35,9 @@ InfoPrinter::~InfoPrinter()
 int
 InfoPrinter::configure(Vector<String> &conf, ErrorHandler *errh)
 {
-    if (cp_va_kparse(conf, this, errh,
+    return cp_va_kparse(conf, this, errh,
     		"FILE", cpkP+cpkM, cpString, &_file,
-    		cpEnd) < 0) {
-    	return -1;
-    }
-
-    return 0;
+    		cpEnd);
 }
 
 void

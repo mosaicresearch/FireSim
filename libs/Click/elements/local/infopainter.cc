@@ -34,14 +34,10 @@ InfoPainter::~InfoPainter()
 int
 InfoPainter::configure(Vector<String> &conf, ErrorHandler *errh)
 {
-    if (cp_va_kparse(conf, this, errh,
+    return cp_va_kparse(conf, this, errh,
     		"LABEL", cpkP+cpkM, cpString, &_label,
     		"READHANDLER", cpkP, cpString, &_readhandler,
-    		cpEnd) < 0)
-    {
-    		return -1;
-    }
-    return 0;
+    		cpEnd);
 }
 
 void

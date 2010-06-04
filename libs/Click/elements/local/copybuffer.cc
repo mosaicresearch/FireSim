@@ -32,11 +32,7 @@ CopyBuffer::~CopyBuffer()
 int
 CopyBuffer::configure(Vector<String> &conf, ErrorHandler *errh)
 {
-    if (cp_va_kparse(conf, this, errh, cpEnd) < 0) {
-    	errh->error("No arguments for CopyBuffer supported.");
-    	return -1;
-    }
-    return 0;
+    return cp_va_kparse(conf, this, errh, cpEnd);
 }
 
 void
