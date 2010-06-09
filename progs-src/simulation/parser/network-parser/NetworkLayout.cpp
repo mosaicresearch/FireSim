@@ -162,7 +162,7 @@ void NetworkLayout::printMasqueradeSwitch(std::ostream& ostream) {
 	int index = 0;
 	for(std::map<std::string, std::string>::iterator it = mapping.begin(); it != mapping.end(); it++) {
 		if (it->second != "0.0.0.0") {
-			ostream << "	masq[" << index << "] -> IPAddrPairRewriter(pattern " << it->second << " - 0 0) -> bt;" << std::endl;
+			ostream << "	masq[" << index << "] -> StaticNat(TYPE src, IP " << it->second << ") -> bt;" << std::endl;
 			index++;
 		}
 	}

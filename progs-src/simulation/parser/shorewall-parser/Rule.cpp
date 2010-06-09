@@ -12,6 +12,7 @@
 #include "Chain.h"
 #include "conditions/LowLevelCondition.h"
 #include "conditions/IgnorableCondition.h"
+#include "conditions/StateCondition.h"
 
 Rule::Rule(std::string iptablesFormat, std::vector<Condition*> conditions,  Chain* target) :
 	_iptablesFormat(iptablesFormat), _conditions(conditions), _target(target), _natIP("-"), _natPort("-") {
@@ -56,7 +57,7 @@ bool Rule::ignore(){
 
 bool Rule::needsIPClassifier() {
 	for (std::vector<Condition*>::iterator it = _conditions.begin(); it != _conditions.end(); it++) {
-		if (!dynamic_cast<LowLevelCondition*>(*it)) {
+		if (!dynamic_cast<LowLevelCondition*>(*it) && !dynamic_cast<StateCondition*>(*it)) {
 			return true;
 		}
 	}
@@ -71,6 +72,14 @@ bool Rule::needsClassifier() {
 	}
 	return false;
 }
+
+std::vector<bool> Rule::getAllowedStates() {
+	assert(_conditions.size() == 1);
+
+	Condition* cond = _conditions.front();
+	return (dynamic_cast<StateCondition*>(cond))->getAllowedStates();
+}
+
 
 void Rule::printClickIPClassifier(std::ostream& ostream){
 		for (std::vector<Condition*>::iterator it = _conditions.begin(); it != _conditions.end(); it++) {
@@ -103,20 +112,19 @@ void Rule::printClickClassifier(std::ostream& ostream){
 
 void Rule::printIPRewriter(std::ostream& ostream) {
 	assert((_natIP != "-") || (_natPort != "-"));
+
+	std::string type;
 	if (_target->getName() == "SNAT") {
-		if (_natPort == "-") {
-			ostream << " -> IPAddrPairRewriter(pattern " << _natIP << " - 0 0)";
-		} else {
-			ostream << " -> IPRewriter(pattern " << _natIP << " " << _natPort << " - - 0 0)";
-		}
+		type = "src";
 	} else if (_target->getName() == "DNAT") {
-		if (_natPort == "-") {
-			ostream << " -> IPAddrPairRewriter(pattern - " << _natIP << " 0 0)";
-		} else {
-			ostream << " -> IPRewriter(pattern - - " << _natIP << " " << _natPort << " 0 0)";
-		}
+		type = "dst";
 	} else {
 		assert(false);
+	}
+	if (_natPort == "-") {
+		ostream << " -> StaticNat(TYPE " << type << ", IP " << _natIP << ")";
+	} else {
+		ostream << " -> StaticNat(TYPE " << type << ", IP " << _natIP << ", PORT " << _natPort << ")";
 	}
 }
 

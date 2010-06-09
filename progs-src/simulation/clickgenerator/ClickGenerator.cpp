@@ -165,11 +165,13 @@ void ClickGenerator::printTrafficTypes(std::ostream& output) {
 		<< " -> Paint(ANNO 19, COLOR 3) -> mangle_postrouting :: MangleTable;" << std::endl;
 	output << "	filter_forward[1] -> [1]output;" << std::endl;
 	output << "	filter_forward[2] -> [2]output;" << std::endl;
-	output << "	mangle_postrouting[0]"
-		<< " -> InfoPainter(\"Entering the Postrouting chain of the Nat table.\")"
-		<< " -> Paint(ANNO 19, COLOR 1) -> nat_postrouting :: NatTable;" << std::endl;
+	output << "	mangle_postrouting[0] -> newConnection :: CheckPaint(ANNO 17, COLOR 0)" << std::endl;
 	output << "	mangle_postrouting[1] -> [1]output;" << std::endl;
 	output << "	mangle_postrouting[2] -> [2]output;" << std::endl;
+	output << "	newConnection[0] -> InfoPainter(\"Entering the Postrouting chain of the Nat table.\")"
+		<< " -> Paint(ANNO 19, COLOR 1) -> nat_postrouting :: NatTable;" << std::endl;
+	output << "	newConnection[1] -> StaticNat(TYPE src)"
+		<< " -> InfoPainter(\"Skipping the Postrouting chain of the Nat table.\") -> [0]output;";
 	output << "	nat_postrouting[0] -> [0]output;" << std::endl;
 	output << "	nat_postrouting[1] -> [1]output;" << std::endl;
 	output << "	nat_postrouting[2] -> [2]output;" << std::endl;
@@ -195,14 +197,15 @@ void ClickGenerator::printTrafficTypes(std::ostream& output) {
 	output << "	input[0]"
 		<< " -> InfoPainter(\"Entering the Output chain of the Mangle table.\")"
 		<< " -> Paint(ANNO 19, COLOR 2) -> mangle_output :: MangleTable;" << std::endl;
-	output << "	mangle_output[0]"
-		<< " -> InfoPainter(\"Entering the Output chain of the Nat table.\")"
-		<< " -> Paint(ANNO 19, COLOR 0) -> nat_output :: NatTable;" << std::endl;
+	output << "	mangle_output[0] -> newConnection :: CheckPaint(ANNO 17, COLOR 0)" << std::endl;
 	output << "	mangle_output[1] -> [1]output;" << std::endl;
 	output << "	mangle_output[2] -> [2]output;" << std::endl;
-	output << "	nat_output[0]"
-		<< " -> InfoPainter(\"Entering the Output chain of the Filter table.\")"
+	output << "	newConnection[0] -> InfoPainter(\"Entering the Output chain of the Nat table.\")"
+		<< " -> Paint(ANNO 19, COLOR 0) -> nat_output :: NatTable;" << std::endl;
+	output << "	newConnection[1] -> StaticNat(TYPE dst) -> InfoPainter(\"Skipping the Output chain of the Nat table.\")"
+		<< " -> toFilter :: InfoPainter(\"Entering the Output chain of the Filter table.\")"
 		<< " -> Paint(ANNO 19, COLOR 2) -> filter_output :: FilterTable;" << std::endl;
+	output << "	nat_output[0] -> toFilter" << std::endl;
 	output << "	nat_output[1] -> [1]output;" << std::endl;
 	output << "	nat_output[2] -> [2]output;" << std::endl;
 	output << "	filter_output[0]"
@@ -210,11 +213,13 @@ void ClickGenerator::printTrafficTypes(std::ostream& output) {
 		<< " -> Paint(ANNO 19, COLOR 3) -> mangle_postrouting :: MangleTable;" << std::endl;
 	output << "	filter_output[1] -> [1]output;" << std::endl;
 	output << "	filter_output[2] -> [2]output;" << std::endl;
-	output << "	mangle_postrouting[0]"
-		<< " -> InfoPainter(\"Entering the Postrouting chain of the Nat table.\")"
-		<< " -> Paint(ANNO 19, COLOR 1) -> nat_postrouting :: NatTable;" << std::endl;
+	output << "	mangle_postrouting[0] -> newConnection2 :: CheckPaint(ANNO 17, COLOR 0)" << std::endl;
 	output << "	mangle_postrouting[1] -> [1]output;" << std::endl;
 	output << "	mangle_postrouting[2] -> [2]output;" << std::endl;
+	output << "	newConnection2[0] -> InfoPainter(\"Entering the Postrouting chain of the Nat table.\")"
+		<< " -> Paint(ANNO 19, COLOR 1) -> nat_postrouting :: NatTable;" << std::endl;
+	output << "	newConnection2[1] -> StaticNat(TYPE src)"
+		<< " -> InfoPainter(\"Skipping the Postrouting chain of the Nat table.\") -> [0]output;" << std::endl;
 	output << "	nat_postrouting[0] -> [0]output;" << std::endl;
 	output << "	nat_postrouting[1] -> [1]output;" << std::endl;
 	output << "	nat_postrouting[2] -> [2]output;" << std::endl;
@@ -225,13 +230,15 @@ void ClickGenerator::printTrafficTypes(std::ostream& output) {
 	output << "	input[0]"
 		<< " -> InfoPainter(\"Entering the Prerouting chain of the Mangle table.\")"
 		<< " -> Paint(ANNO 19, COLOR 4) -> mangle_prerouting :: MangleTable;" << std::endl;
-	output << "	mangle_prerouting[0]"
-		<< " -> InfoPainter(\"Entering the Prerouting chain of the Nat table.\")"
-		<< " -> Paint(ANNO 19, COLOR 2) -> nat_prerouting :: NatTable;" << std::endl;
+	output << "	mangle_prerouting[0] -> newConnection :: CheckPaint(ANNO 17, COLOR 0)" << std::endl;
 	output << "	mangle_prerouting[1] -> [1]output;" << std::endl;
 	output << "	mangle_prerouting[2] -> [2]output;" << std::endl;
-	output << "	nat_prerouting[0] -> ";
+	output << "	newConnection[0] -> InfoPainter(\"Entering the Prerouting chain of the Nat table.\")"
+		<< " -> Paint(ANNO 19, COLOR 2) -> nat_prerouting :: NatTable;" << std::endl;
+	output << "	newConnection[1] -> StaticNat(TYPE dst)"
+		<< " -> InfoPainter(\"Skipping the Prerouting chain of the Nat table.\") -> ";
 	_networkLayout->printTrafficTypeClassifier(output, "in_or_fwd", false);
+	output << "	nat_prerouting[0] -> in_or_fwd";
 	output << "	nat_prerouting[1] -> [1]output;" << std::endl;
 	output << "	nat_prerouting[2] -> [2]output;" << std::endl;
 	output << "	in_or_fwd[0]"
@@ -329,7 +336,7 @@ void ClickGenerator::generateSimulation(std::ostream& output) {
 	printTrafficSwitch(output);
 
 	output << "//Counters for statistics" << std::endl;
-	output << "inputCounter :: Counter -> InfoPainter(\"PACKET \", inputCounter.count) -> trafficType;" << std::endl;
+	output << "inputCounter :: Counter;" << std::endl;
 	output << "ACCEPT_true :: Counter;" << std::endl;
 	output << "ACCEPT_false :: Counter;" << std::endl;
 	output << "REJECT_true :: Counter;" << std::endl;
@@ -354,7 +361,10 @@ void ClickGenerator::generateSimulation(std::ostream& output) {
 
 	output << "//Do simulation with input traffic" << std::endl;
 	output << "copy[0] -> MarkIPHeader(14)" << std::endl;
-	output << "	-> inputCounter;" << std::endl;
+	output << "	-> inputCounter" << std::endl;
+	output << "	-> InfoPainter(\"PACKET \", inputCounter.count) " << std::endl;
+	output << "	-> StateMachine(ANNO 17)" << std::endl;
+	output << "	-> trafficType;" << std::endl;
 	output << std::endl;
 
 	output << "//Send faulty packet to correct dump" << std::endl;

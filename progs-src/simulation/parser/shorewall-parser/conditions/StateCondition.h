@@ -10,19 +10,48 @@
 //Standard
 //Poco
 //FireSim
-#include "IgnorableCondition.h"
+#include "Condition.h"
 
-class StateCondition : public IgnorableCondition {
+enum State {
+	NEW,
+	ESTABLISHED,
+	RELATED,
+	INVALID
+};
+
+class StateCondition : public Condition {
 public:
-	StateCondition(std::string values) : _values(values){
+	StateCondition(std::string values) {
+		std::cout << "state: " + values << std::endl;
+		if(values.find("NEW") != std::string::npos)
+			_values.push_back(true);
+		else
+			_values.push_back(false);
+		if(values.find("ESTABLISHED") != std::string::npos)
+			_values.push_back(true);
+		else
+			_values.push_back(false);
+		if(values.find("RELATED") != std::string::npos)
+			_values.push_back(true);
+		else
+			_values.push_back(false);
+		if(values.find("INVALID") != std::string::npos)
+			_values.push_back(true);
+		else
+			_values.push_back(false);
 	}
 
+	//don't call this methode but use print(std::ostream& stream, std::string name) instead
 	void print(std::ostream& stream) {
-		stream << "IGNORED" << std::endl;
+		assert(false);
+	}
+
+	std::vector<bool> getAllowedStates() {
+		return _values;
 	}
 
 private:
-	std::string _values;
+	std::vector<bool> _values;
 };
 
 #endif /* STATECONDITION_H_ */

@@ -60,6 +60,7 @@ int main(int argc, char *argv[]) {
 	splitter->addChannel(new ConsoleChannel);
 	pFCConsole->setChannel(splitter);
 	pFCConsole->open();
+	Logger::destroy("ConsoleLogger");
 
 	bool testRun;
 	int numRuns = 1;
@@ -87,7 +88,6 @@ int main(int argc, char *argv[]) {
 	std::string config_path2 = config_path;
 	if (testRun)
 		config_path2 += "../";
-
 
 	//print ascii-logo
 	std::stringstream stringstream;
@@ -150,5 +150,4 @@ int main(int argc, char *argv[]) {
 		Statistics stats = Statistics();
 		stats.getUserReport();
 	}
-
 }

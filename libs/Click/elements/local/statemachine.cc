@@ -22,8 +22,6 @@
 #include <clicknet/icmp.h>
 #include <clicknet/tcp.h>
 #include <clicknet/udp.h>
-#include <iostream>
-#include <arpa/inet.h>
 
 CLICK_DECLS
 
@@ -56,7 +54,6 @@ StateMachine::push(int, Packet* p) {
 	const click_ip* ip_header = p->ip_header();
 	StateEntry entry;
 	entry.protocol = Protocol(ip_header->ip_p);
-
 
 //	std::cout << "ip src = " << IPAddress(ip_header->ip_src).unparse().c_str() <<
 //	", ip dst = " << IPAddress(ip_header->ip_dst).unparse().c_str() << std::endl;
@@ -231,12 +228,12 @@ StateMachine::doNat(WritablePacket* p, String type, in_addr addr, uint16_t port)
 						&& src_port == it->addr.srcPort	&& dst_port == it->addr.dstPort) {
 					//dst nat => change src of replyAddr & dst of packet
 					if (addr.s_addr != 0) {
-//						std::cout << "changing source address to " << inet_ntoa(addr) << std::endl;
+//						std::cout << "changing source of reply address to " << inet_ntoa(addr) << std::endl;
 						it->replyAddr.srcIP = addr;
 						p->ip_header()->ip_dst = addr;
 					}
 					if (port != 0) {
-//						std::cout << "changing source port to " << port << std::endl;
+//						std::cout << "changing source port of reply address to " << port << std::endl;
 						it->replyAddr.srcPort = port;
 						if (proto == TCP)
 							p->tcp_header()->th_dport = port;
@@ -252,7 +249,7 @@ StateMachine::doNat(WritablePacket* p, String type, in_addr addr, uint16_t port)
 						&& src_port == it->addr.srcPort	&& dst_port == it->replyAddr.srcPort) {
 					//src nat => change dst of reply
 					if (addr.s_addr != 0) {
-//						std::cout << "changing destination address to " << inet_ntoa(addr) << std::endl;
+//						std::cout << "changing destination of reply address to " << inet_ntoa(addr) << std::endl;
 						it->replyAddr.dstIP = addr;
 						p->ip_header()->ip_src = addr;
 					}

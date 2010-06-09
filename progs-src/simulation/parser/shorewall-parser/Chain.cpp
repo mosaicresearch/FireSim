@@ -65,8 +65,10 @@ void Chain::printClickClassifiers(std::ostream& ostream) {
 			_rules[index]->printClickClassifier(ostream);
 			ostream << "-);" << std::endl;
 		} else {
-			assert(false);
+			//state condition
+			ostream << this->getName() << (index + 1) << " :: PaintSwitch(ANNO 17);";
 		}
+
 	}
 	if((_rules.empty() && _usedChain) || (!_rules.empty())) {
 		ostream << "	Idle -> " << this->getName() << (_rules.size() + 1) << " :: IPClassifier(-);" << std::endl;
@@ -153,7 +155,32 @@ void Chain::printClickSimulation(std::ostream& ostream, std::string tableName) {
 			<< " -> InfoPainter(\"" << _rules[index]->getIpTablesText().substr(3, std::string::npos) << " (failed)\")"
 			<< " -> " << this->getName() << (index + 2)  << ";" << std::endl;
 		} else {
-			assert(false);
+			//state condition
+			std::vector<bool> allowedStates = _rules[index]->getAllowedStates();
+			for (int i = 0; i < allowedStates.size(); i++) {
+				ostream << "\t" << this->getName() << (index + 1) << "[" << i << "]";
+				if (allowedStates[i]) {
+					ostream << " -> StaticCounter(TABLE " << tableName << ", RULE \"" <<_rules[index]->getIpTablesText().substr(3, std::string::npos) << "\")"
+						<< " -> InfoPainter(\"" << _rules[index]->getIpTablesText().substr(3, std::string::npos) << " (succeeded)\")";
+					if (target->getName() == "RETURN") {
+						ostream << " -> bt;" << std::endl;
+					} else if (target->getName() == "MASQUERADE") {
+						ostream << " -> BacktrackPainter(" << this->getName() << (index + 2) << ")"
+						<< " -> masq;" << std::endl;
+					} else if ((target->getName() == "SNAT") || (target->getName() == "DNAT")) {
+						_rules[index]->printIPRewriter(ostream);
+						ostream	<< " -> " << this->getName() << (index + 2) << ";" <<std::endl;
+					} else if (target->isFinal()) {
+						ostream << " -> " << target->getName() << ";" <<std::endl;
+					} else {
+						ostream << " -> BacktrackPainter(" << this->getName() << (index + 2) << ")"
+						<< " -> " << target->getName() << "1" << ";" <<std::endl;
+					}
+				} else {
+					ostream << 	" -> InfoPainter(\"" << _rules[index]->getIpTablesText().substr(3, std::string::npos)
+						<< " (failed)\") -> " << this->getName() << (index + 2)  << ";" << std::endl;
+				}
+			}
 		}
 	}
 	if (_usedChain) {

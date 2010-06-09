@@ -73,6 +73,11 @@ public:
 	bool needsClassifier();
 
 	/**
+	 * Returns the allowed states for a rule containing a state condition.
+	 */
+	std::vector<bool> getAllowedStates();
+
+	/**
 	 * Print a click IPClassifier
 	 * @param ostream This is the output stream. The classifier will be printed to this stream.
 	 */
