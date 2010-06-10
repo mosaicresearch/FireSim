@@ -18,7 +18,7 @@
 #include <click/confparse.hh>
 #include <click/error.hh>
 #include <click/packet_anno.hh>
-#include <vector>
+#include <click/vector.hh>
 #include <iostream>
 #include <fstream>
 #include "assert.h"
@@ -43,12 +43,12 @@ InfoPrinter::configure(Vector<String> &conf, ErrorHandler *errh)
 void
 InfoPrinter::push(int, Packet* p)
 {
-	std::vector<String>* vector_ptr = (std::vector<String>*) p->anno_u32(EXTRA_PACKETS_ANNO_OFFSET);
+	Vector<String>* vector_ptr = (Vector<String>*) p->anno_u32(EXTRA_PACKETS_ANNO_OFFSET);
 	assert(p->anno_u32(EXTRA_PACKETS_ANNO_OFFSET) != 0);
 
 	if(_file.compare(String("")) != 0) {
 		std::ofstream file(_file.c_str(), std::ios::app);
-		std::vector<String>::iterator it;
+		Vector<String>::iterator it;
 		for (it = vector_ptr->begin(); it < vector_ptr->end(); it++) {
 			file << it->c_str() << std::endl;
 		}

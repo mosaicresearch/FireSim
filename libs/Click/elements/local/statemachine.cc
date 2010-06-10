@@ -33,7 +33,7 @@ StateMachine::~StateMachine()
 {
 }
 
-std::vector<StateEntry> StateMachine::_stateEntryList;
+Vector<StateEntry> StateMachine::_stateEntryList;
 
 int
 StateMachine::configure(Vector<String> &conf, ErrorHandler *errh)
@@ -54,10 +54,6 @@ StateMachine::push(int, Packet* p) {
 	const click_ip* ip_header = p->ip_header();
 	StateEntry entry;
 	entry.protocol = Protocol(ip_header->ip_p);
-
-//	std::cout << "ip src = " << IPAddress(ip_header->ip_src).unparse().c_str() <<
-//	", ip dst = " << IPAddress(ip_header->ip_dst).unparse().c_str() << std::endl;
-
 	entry.addr.srcIP = ip_header->ip_src;
 	entry.addr.dstIP = ip_header->ip_dst;
 	entry.addr.srcPort = 0;
@@ -108,22 +104,16 @@ StateMachine::push(int, Packet* p) {
 				|| (entry.protocol == ICMP && (entry.type == ICMP_ECHO || entry.type == ICMP_TSTAMP
 						|| entry.type == ICMP_IREQ || entry.type == ICMP_MASKREQ))) {
 			//add first connection
-//			std::cout << "first initiator: src " << IPAddress(entry.addr.srcIP).unparse().c_str() << " "
-//				<< entry.addr.srcPort << ", dst " << IPAddress(entry.addr.dstIP).unparse().c_str() << " "
-//				<< entry.addr.dstPort << std::endl;
 			_stateEntryList.push_back(entry);
 			state = NEW;
 		}
 	} else {
 		if (entry.protocol == TCP || entry.protocol == UDP) {
 			bool foundConnection = false;
-			for (std::vector<StateEntry>::iterator it = _stateEntryList.begin() ; it < _stateEntryList.end(); it++) {
+			for (Vector<StateEntry>::iterator it = _stateEntryList.begin() ; it < _stateEntryList.end(); it++) {
 				if (entry.protocol == it->protocol && entry.addr.srcIP == it->addr.srcIP
 						&& entry.addr.dstIP == it->addr.dstIP && entry.addr.srcPort == it->addr.srcPort
 						&& entry.addr.dstPort == it->addr.dstPort) {
-//					std::cout << "packet from initiator: src " << IPAddress(entry.addr.srcIP).unparse().c_str() << " "
-//						<< entry.addr.srcPort << ", dst " << IPAddress(entry.addr.dstIP).unparse().c_str() << " "
-//						<< entry.addr.dstPort << std::endl;
 					//packet from connection initiator
 					if (it->gotReply)
 						state = ESTABLISHED;
@@ -134,9 +124,6 @@ StateMachine::push(int, Packet* p) {
 				} else if (entry.protocol == it->protocol && entry.addr.srcIP == it->replyAddr.srcIP
 						&& entry.addr.dstIP == it->replyAddr.dstIP && entry.addr.srcPort == it->replyAddr.srcPort
 						&& entry.addr.dstPort == it->replyAddr.dstPort) {
-//					std::cout << "packet from replier: src " << IPAddress(entry.addr.srcIP).unparse().c_str() << " "
-//						<< entry.addr.srcPort << ", dst " << IPAddress(entry.addr.dstIP).unparse().c_str() << " "
-//						<< entry.addr.dstPort << std::endl;
 					//reply packet to connection initiator
 					it->gotReply = true;
 					state = ESTABLISHED;
@@ -146,9 +133,6 @@ StateMachine::push(int, Packet* p) {
 			}
 			if (!foundConnection) {
 				//add new connection
-//				std::cout << "new initiator: src " << IPAddress(entry.addr.srcIP).unparse().c_str() << " "
-//					<< entry.addr.srcPort << ", dst " << IPAddress(entry.addr.dstIP).unparse().c_str() << " "
-//					<< entry.addr.dstPort << std::endl;
 				_stateEntryList.push_back(entry);
 				state = NEW;
 			}
@@ -156,7 +140,7 @@ StateMachine::push(int, Packet* p) {
 			if (entry.type == ICMP_ECHO || entry.type == ICMP_TSTAMP
 					|| entry.type == ICMP_IREQ || entry.type == ICMP_MASKREQ) {
 				bool foundConnection = false;
-				for (std::vector<StateEntry>::iterator it = _stateEntryList.begin() ; it < _stateEntryList.end(); it++) {
+				for (Vector<StateEntry>::iterator it = _stateEntryList.begin() ; it < _stateEntryList.end(); it++) {
 					if (entry.protocol == it->protocol && entry.addr.srcIP == it->addr.srcIP
 							&& entry.addr.dstIP == it->addr.dstIP && entry.type == it->type) {
 						//packet from connection initiator
@@ -171,7 +155,7 @@ StateMachine::push(int, Packet* p) {
 					state = NEW;
 				}
 			} else if (entry.type == ICMP_ECHOREPLY) {
-				for (std::vector<StateEntry>::iterator it = _stateEntryList.begin() ; it < _stateEntryList.end(); it++) {
+				for (Vector<StateEntry>::iterator it = _stateEntryList.begin() ; it < _stateEntryList.end(); it++) {
 					if (entry.protocol == it->protocol && entry.addr.srcIP == it->replyAddr.srcIP
 							&& entry.addr.dstIP == it->replyAddr.dstIP && ICMP_ECHO == it->type) {
 						//reply packet to connection initiator
@@ -180,7 +164,7 @@ StateMachine::push(int, Packet* p) {
 					}
 				}
 			} else if (entry.type == ICMP_TSTAMPREPLY || entry.type == ICMP_IREQREPLY || entry.type == ICMP_MASKREQREPLY) {
-				for (std::vector<StateEntry>::iterator it = _stateEntryList.begin() ; it < _stateEntryList.end(); it++) {
+				for (Vector<StateEntry>::iterator it = _stateEntryList.begin() ; it < _stateEntryList.end(); it++) {
 					if (entry.protocol == it->protocol && entry.addr.srcIP == it->replyAddr.srcIP
 							&& entry.addr.dstIP == it->replyAddr.dstIP && entry.type - 1 == it->type) {
 						//reply packet to connection initiator
@@ -189,7 +173,7 @@ StateMachine::push(int, Packet* p) {
 					}
 				}
 			} else {
-				for (std::vector<StateEntry>::iterator it = _stateEntryList.begin() ; it < _stateEntryList.end(); it++) {
+				for (Vector<StateEntry>::iterator it = _stateEntryList.begin() ; it < _stateEntryList.end(); it++) {
 					if (entry.protocol != it->protocol && (
 							(entry.addr.srcIP == it->addr.srcIP && entry.addr.dstIP == it->addr.dstIP)
 							|| (entry.addr.srcIP == it->replyAddr.srcIP && entry.addr.dstIP == it->replyAddr.dstIP))) {
@@ -222,18 +206,16 @@ StateMachine::doNat(WritablePacket* p, String type, in_addr addr, uint16_t port)
 
 	if (addr.s_addr != 0 || port != 0) {
 		//we will change the replyAddr to its new NAT mapping and do src or dst NAT
-		for (std::vector<StateEntry>::iterator it = _stateEntryList.begin() ; it < _stateEntryList.end(); it++) {
+		for (Vector<StateEntry>::iterator it = _stateEntryList.begin() ; it < _stateEntryList.end(); it++) {
 			if (type == "dst") {
 				if (proto == it->protocol && src_ip == it->addr.srcIP && dst_ip == it->addr.dstIP
 						&& src_port == it->addr.srcPort	&& dst_port == it->addr.dstPort) {
 					//dst nat => change src of replyAddr & dst of packet
 					if (addr.s_addr != 0) {
-//						std::cout << "changing source of reply address to " << inet_ntoa(addr) << std::endl;
 						it->replyAddr.srcIP = addr;
 						p->ip_header()->ip_dst = addr;
 					}
 					if (port != 0) {
-//						std::cout << "changing source port of reply address to " << port << std::endl;
 						it->replyAddr.srcPort = port;
 						if (proto == TCP)
 							p->tcp_header()->th_dport = port;
@@ -249,12 +231,10 @@ StateMachine::doNat(WritablePacket* p, String type, in_addr addr, uint16_t port)
 						&& src_port == it->addr.srcPort	&& dst_port == it->replyAddr.srcPort) {
 					//src nat => change dst of reply
 					if (addr.s_addr != 0) {
-//						std::cout << "changing destination of reply address to " << inet_ntoa(addr) << std::endl;
 						it->replyAddr.dstIP = addr;
 						p->ip_header()->ip_src = addr;
 					}
 					if (port != 0) {
-//						std::cout << "changing destination port to " << port << std::endl;
 						it->replyAddr.dstPort = port;
 						if (proto == TCP)
 							p->tcp_header()->th_sport = port;
@@ -267,7 +247,7 @@ StateMachine::doNat(WritablePacket* p, String type, in_addr addr, uint16_t port)
 		}
 	} else {
 		//the NAT mapping is already present: just do src or dst NAT (received packet may be originator or reply!)
-		for (std::vector<StateEntry>::iterator it = _stateEntryList.begin() ; it < _stateEntryList.end(); it++) {
+		for (Vector<StateEntry>::iterator it = _stateEntryList.begin() ; it < _stateEntryList.end(); it++) {
 			if (type == "dst") {
 				if (proto == it->protocol && src_ip == it->addr.srcIP && dst_ip == it->addr.dstIP
 						&& src_port == it->addr.srcPort	&& dst_port == it->addr.dstPort) {

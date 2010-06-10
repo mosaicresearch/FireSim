@@ -2,7 +2,7 @@
 #define CLICK_STATICCOUNTER_HH
 #include <click/element.hh>
 #include <click/string.hh>
-#include <map>
+#include <click/hashmap.hh>
 CLICK_DECLS
 
 class StaticCounter : public Element { public:
@@ -23,9 +23,9 @@ class StaticCounter : public Element { public:
 	String _table;
 	String _rule;
 
-	static std::map<String,int> _nat;
-	static std::map<String,int> _mangle;
-	static std::map<String,int> _filter;
+	static HashMap<String,int> _nat;
+	static HashMap<String,int> _mangle;
+	static HashMap<String,int> _filter;
 
     static String unused_handler(Element *, void *);
 };

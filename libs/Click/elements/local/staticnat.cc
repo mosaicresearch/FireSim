@@ -17,7 +17,6 @@
 #include "staticnat.hh"
 #include <click/confparse.hh>
 #include <click/error.hh>
-#include <iostream>
 CLICK_DECLS
 
 StaticNat::StaticNat()

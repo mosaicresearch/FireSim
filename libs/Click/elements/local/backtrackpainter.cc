@@ -18,7 +18,7 @@
 #include <click/confparse.hh>
 #include <click/error.hh>
 #include <click/packet_anno.hh>
-#include <vector>
+#include <click/vector.hh>
 #include "assert.h"
 CLICK_DECLS
 
@@ -41,11 +41,11 @@ BacktrackPainter::configure(Vector<String> &conf, ErrorHandler *errh)
 
 void
 BacktrackPainter::push(int, Packet* p){
-	assert(sizeof(std::vector<Element*>*) == sizeof(uint32_t));
+	assert(sizeof(Vector<Element*>*) == sizeof(uint32_t));
 	if (p->anno_u32(AGGREGATE_ANNO_OFFSET) != 0)
-		((std::vector<Element*>*)p->anno_u32(AGGREGATE_ANNO_OFFSET))->push_back(_next);
+		((Vector<Element*>*)p->anno_u32(AGGREGATE_ANNO_OFFSET))->push_back(_next);
 	else {
-		std::vector<Element*>* vector_ptr = new std::vector<Element*>();
+		Vector<Element*>* vector_ptr = new Vector<Element*>();
 		vector_ptr->push_back(_next);
 		p->set_anno_u32(AGGREGATE_ANNO_OFFSET, uint32_t(vector_ptr));
 	}

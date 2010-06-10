@@ -31,9 +31,9 @@ StaticCounter::~StaticCounter()
 {
 }
 
-std::map<String,int> StaticCounter::_nat;
-std::map<String,int> StaticCounter::_mangle;
-std::map<String,int> StaticCounter::_filter;
+HashMap<String,int> StaticCounter::_nat;
+HashMap<String,int> StaticCounter::_mangle;
+HashMap<String,int> StaticCounter::_filter;
 
 int
 StaticCounter::configure(Vector<String> &conf, ErrorHandler *errh)
@@ -46,11 +46,11 @@ StaticCounter::configure(Vector<String> &conf, ErrorHandler *errh)
 
 	if (_rule != "") {
 		if (_table == "mangle")
-			_mangle[_rule] = 0;
+			_mangle.insert(_rule, 0);
 		else if (_table == "nat")
-			_nat[_rule] = 0;
+			_nat.insert(_rule, 0);
 		else if (_table == "filter")
-			_filter[_rule] = 0;
+			_filter.insert(_rule, 0);
 	}
 	return 0;
 }
@@ -63,11 +63,11 @@ StaticCounter::push(int, Packet* p)
 		return;
 	}
 	if (_table == "mangle")
-		_mangle[_rule] = _mangle[_rule] + 1;
+		_mangle.insert(_rule, _mangle[_rule] + 1);
 	else if (_table == "nat")
-		_nat[_rule] = _nat[_rule] + 1;
+		_nat.insert(_rule, _nat[_rule] + 1);
 	else if (_table == "filter")
-		_filter[_rule] = _filter[_rule] + 1;
+		_filter.insert(_rule, _filter[_rule] + 1);
 	else {
 		click_chatter("Error: expecting TABLE argument in configuration string.");
 		return;
@@ -81,39 +81,39 @@ StaticCounter::unused_handler(Element *, void *)
 {
 	String output = String();
 	bool first = true;
-	for (std::map<String,int>::const_iterator it = _mangle.begin(); it != _mangle.end(); it++) {
-		if (it->second == 0) {
+	for (HashMap<String,int>::const_iterator it = _mangle.begin(); it != _mangle.end(); it++) {
+		if (it.value() == 0) {
 			if (first) {
 				output += "****************\n";
 				output += "* MANGLE TABLE *\n";
 				output += "****************\n";
 				first = false;
 			}
-			output += (it->first + "\n");
+			output += (it.key() + "\n");
 		}
 	}
 	first = true;
-	for (std::map<String,int>::iterator it = _nat.begin(); it != _nat.end(); it++) {
-		if (it->second == 0) {
+	for (HashMap<String,int>::iterator it = _nat.begin(); it != _nat.end(); it++) {
+		if (it.value() == 0) {
 			if (first) {
 				output += "*************\n";
 				output += "* NAT TABLE *\n";
 				output += "*************\n";
 				first = false;
 			}
-			output += (it->first + "\n");
+			output += (it.key() + "\n");
 		}
 	}
 	first = true;
-	for (std::map<String,int>::iterator it = _filter.begin(); it != _filter.end(); it++) {
-		if (it->second == 0) {
+	for (HashMap<String,int>::iterator it = _filter.begin(); it != _filter.end(); it++) {
+		if (it.value() == 0) {
 			if (first) {
 				output += "****************\n";
 				output += "* FILTER TABLE *\n";
 				output += "****************\n";
 				first = false;
 			}
-			output += (it->first + "\n");
+			output += (it.key() + "\n");
 		}
 	}
 	return output;

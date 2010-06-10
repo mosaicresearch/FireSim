@@ -18,7 +18,7 @@
 #include <click/confparse.hh>
 #include <click/error.hh>
 #include <click/packet_anno.hh>
-#include <vector>
+#include <click/vector.hh>
 CLICK_DECLS
 
 CopyBuffer::CopyBuffer()
@@ -42,9 +42,11 @@ CopyBuffer::push(int port, Packet* p)
 		_packet = p->clone();
 		output(0).push(p);
 	} else if (port == 1) {
+		// copy the information added by the infopainters
 		_packet->set_anno_u32(EXTRA_PACKETS_ANNO_OFFSET, p->anno_u32(EXTRA_PACKETS_ANNO_OFFSET));
 
-		std::vector<Element*>* vector_ptr = (std::vector<Element*>*) p->anno_u32(AGGREGATE_ANNO_OFFSET);
+		// delete the information added by the backtrackpainters before killing the incoming packet
+		Vector<Element*>* vector_ptr = (Vector<Element*>*) p->anno_u32(AGGREGATE_ANNO_OFFSET);
 		if (vector_ptr != 0)
 			delete vector_ptr;
 		p->kill();

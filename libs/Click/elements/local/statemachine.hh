@@ -2,7 +2,7 @@
 #define CLICK_STATEMACHINE_HH
 #include <click/element.hh>
 #include <click/string.hh>
-#include <vector>
+#include <click/vector.hh>
 CLICK_DECLS
 
 enum State {
@@ -58,7 +58,7 @@ class StateMachine : public Element { public:
 
 private:
 	uint8_t _anno;
-	static std::vector<StateEntry> _stateEntryList;
+	static Vector<StateEntry> _stateEntryList;
 
 };
 

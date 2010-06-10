@@ -18,7 +18,7 @@
 #include <click/confparse.hh>
 #include <click/error.hh>
 #include <click/packet_anno.hh>
-#include <vector>
+#include <click/vector.hh>
 #include "assert.h"
 CLICK_DECLS
 
@@ -38,7 +38,7 @@ Backtracker::configure(Vector<String> &conf, ErrorHandler *errh)
 
 void
 Backtracker::push(int port, Packet* p){
-	std::vector<Element*>* vector_ptr = (std::vector<Element*>*) p->anno_u32(AGGREGATE_ANNO_OFFSET);
+	Vector<Element*>* vector_ptr = (Vector<Element*>*) p->anno_u32(AGGREGATE_ANNO_OFFSET);
 	assert(p->anno_u32(AGGREGATE_ANNO_OFFSET) != 0);
 
 	Element* tmp = vector_ptr->back();

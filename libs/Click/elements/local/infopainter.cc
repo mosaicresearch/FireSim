@@ -19,7 +19,7 @@
 #include <click/error.hh>
 #include <click/packet_anno.hh>
 #include <click/handlercall.hh>
-#include <vector>
+#include <click/vector.hh>
 #include "assert.h"
 CLICK_DECLS
 
@@ -53,11 +53,11 @@ InfoPainter::push(int, Packet* p)
 		}
 	}
 
-	assert(sizeof(std::vector<String>*) == sizeof(uint32_t));
+	assert(sizeof(Vector<String>*) == sizeof(uint32_t));
 	if (p->anno_u32(EXTRA_PACKETS_ANNO_OFFSET) != 0)
-		((std::vector<String>*)p->anno_u32(EXTRA_PACKETS_ANNO_OFFSET))->push_back(info);
+		((Vector<String>*)p->anno_u32(EXTRA_PACKETS_ANNO_OFFSET))->push_back(info);
 	else {
-		std::vector<String>* vector_ptr = new std::vector<String>();
+		Vector<String>* vector_ptr = new Vector<String>();
 		vector_ptr->push_back(info);
 		p->set_anno_u32(EXTRA_PACKETS_ANNO_OFFSET, uint32_t(vector_ptr));
 	}
