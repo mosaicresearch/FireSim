@@ -351,11 +351,11 @@ void ClickGenerator::generateSimulation(std::ostream& output) {
 
 	output << "//Output switch" << std::endl;
 	output << "output :: Switch;" << std::endl;
-	output << "output[0] -> InfoPainter(\"\") -> InfoPrinter(\"" << (_testRun?"":"output/faulty_accept.txt")
+	output << "output[0] -> InfoPrinter(\"" << (_testRun?"":"output/faulty_accept.txt")
 		<< "\") -> ToDump(\"output/faulty_accept.dump\");" << std::endl;
-	output << "output[1] -> InfoPainter(\"\") -> InfoPrinter(\"" << (_testRun?"":"output/faulty_reject.txt")
+	output << "output[1] -> InfoPrinter(\"" << (_testRun?"":"output/faulty_reject.txt")
 		<< "\") -> ToDump(\"output/faulty_reject.dump\");" << std::endl;
-	output << "output[2] -> InfoPainter(\"\") -> InfoPrinter(\"" << (_testRun?"":"output/faulty_drop.txt")
+	output << "output[2] -> InfoPrinter(\"" << (_testRun?"":"output/faulty_drop.txt")
 		<< "\") -> ToDump(\"output/faulty_drop.dump\");" << std::endl;
 	output << std::endl;
 
@@ -368,7 +368,7 @@ void ClickGenerator::generateSimulation(std::ostream& output) {
 	output << std::endl;
 
 	output << "//Send faulty packet to correct dump" << std::endl;
-	output << "copy[1] -> output;" << std::endl;
+	output << "copy[1] -> InfoPainter(\"\") -> output;" << std::endl;
 	output << std::endl;
 
 	output << "//Feedback" << std::endl;

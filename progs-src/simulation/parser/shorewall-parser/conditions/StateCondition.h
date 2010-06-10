@@ -12,17 +12,9 @@
 //FireSim
 #include "Condition.h"
 
-enum State {
-	NEW,
-	ESTABLISHED,
-	RELATED,
-	INVALID
-};
-
 class StateCondition : public Condition {
 public:
 	StateCondition(std::string values) {
-		std::cout << "state: " + values << std::endl;
 		if(values.find("NEW") != std::string::npos)
 			_values.push_back(true);
 		else
