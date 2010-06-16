@@ -86,7 +86,7 @@ void printFireSimLogo(std::iostream& stream){
 	stream << "# | |_    | | | |_) ||  _|  \\___ \\ | | | |\\/| |  #" << std::endl;
 	stream << "# |  _|   | | |  _ < | |___  ___) || | | |  | |  #" << std::endl;
 	stream << "# |_|    |___||_| \\_\\|_____||____/|___||_|  |_|  #" << std::endl;
-	stream << "#                    2008-2009                   #" << std::endl;
+	stream << "#                    2008-2010                   #" << std::endl;
 	stream << "#                                                #" << std::endl;
 	stream << "# Nico.VanLooy@student.ua.ac.be                  #" << std::endl;
 	stream << "# Jens.DeWit@student.ua.ac.be                    #" << std::endl;
